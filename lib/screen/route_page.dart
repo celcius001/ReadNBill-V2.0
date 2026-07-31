@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:readnbill/database/database_helper.dart';
+import 'package:readnbill/models/route_model.dart';
+import 'package:readnbill/services/api_service.dart';
 
 class RoutePage extends StatefulWidget {
   final ValueChanged<String> onRouteSelected;
@@ -9,7 +11,8 @@ class RoutePage extends StatefulWidget {
 }
 
 class _RoutePageState extends State<RoutePage> {
-  List<Map<String, dynamic>> _routes = [];
+  List<RouteModel> _routes = [];
+  final ApiService api = ApiService();
 
   @override
   void initState() {
@@ -18,13 +21,17 @@ class _RoutePageState extends State<RoutePage> {
   }
 
   Future<void> _loadRoutes() async {
-    final routes = await DatabaseHelper.instance.getRoutes();
+    try {
+      final routes = await DatabaseHelper.instance.getRoutes();
 
-    if (!mounted) return;
+      if (!mounted) return;
 
-    setState(() {
-      _routes = routes;
-    });
+      setState(() {
+        _routes = routes;
+      });
+    } catch (e) {
+      debugPrint("Failed to load routes: $e");
+    }
   }
 
   void _confirmDelete(String routeNo) {
@@ -112,12 +119,20 @@ class _RoutePageState extends State<RoutePage> {
               icon: const Icon(Icons.download),
               label: const Text("Download"),
               onPressed: () async {
-                final routeNo = routeController.text.trim();
+                final routeCode = routeController.text.trim();
                 final seqFrom = int.parse(seqFromController.text.trim());
                 final seqTo = int.parse(seqToController.text.trim());
 
+                // Download route from the API
+                final route = await api.downloadRoute(routeCode: routeCode);
+
                 await DatabaseHelper.instance.saveRoute(
-                  routeNo,
+                  route.routeCode,
+                  route.townCode,
+                  route.description,
+                  route.serviceDayFrom,
+                  route.serviceDayTo,
+                  route.dueDay,
                   seqFrom,
                   seqTo,
                 );
@@ -173,14 +188,14 @@ class _RoutePageState extends State<RoutePage> {
                   return Card(
                     child: ListTile(
                       leading: const Icon(Icons.route),
-                      title: Text("Route ${route["route_no"]}"),
+                      title: Text(route.routeCode),
                       trailing: const Icon(Icons.arrow_forward_ios),
                       onTap: () {
                         // Navigate to route details page
-                        widget.onRouteSelected(route["route_no"]);
+                        widget.onRouteSelected(route.routeCode);
                       },
                       onLongPress: () {
-                        _confirmDelete(route["route_no"]);
+                        _confirmDelete(route.routeCode);
                       },
                     ),
                   );

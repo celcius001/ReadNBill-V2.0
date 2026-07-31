@@ -1,4 +1,5 @@
 import 'package:path/path.dart';
+import 'package:readnbill/models/route_model.dart';
 import 'package:sqflite/sqflite.dart';
 
 class DatabaseHelper {
@@ -26,51 +27,72 @@ class DatabaseHelper {
     await db.execute('''
       CREATE TABLE routes(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        route_no TEXT NOT NULL,
-        seq_from INTEGER NOT NULL,
-        seq_to INTEGER NOT NULL
+        RouteCode TEXT NOT NULL,
+        TownCode TEXT NOT NULL,
+        Description TEXT NOT NULL,
+        ServiceDayFrom INTEGER NOT NULL,
+        ServiceDayTo INTEGER NOT NULL,
+        DueDay INTEGER NOT NULL,
+        SequenceFrom INTEGER NOT NULL,
+        SequenceTo INTEGER NOT NULL
       )
     ''');
   }
 
-  Future<List<Map<String, dynamic>>> getRoutes() async {
+  Future<List<RouteModel>> getRoutes() async {
     final db = await database;
 
-    return await db.query('routes', orderBy: 'route_no ASC');
+    final result = await db.query('routes');
+
+    return result.map<RouteModel>((row) => RouteModel.fromMap(row)).toList();
   }
 
-  Future<void> saveRoute(String routeNo, int seqFrom, int seqTo) async {
+  Future<void> saveRoute(
+    String routeCode,
+    String townCode,
+    String desc,
+    int dayFrom,
+    int dayTo,
+    int dueDay,
+    int seqFrom,
+    int seqTo,
+  ) async {
     final db = await database;
 
     final existing = await db.query(
       'routes',
-      where: 'route_no = ?',
-      whereArgs: [routeNo],
+      where: 'RouteCode = ?',
+      whereArgs: [routeCode],
     );
 
     if (existing.isEmpty) {
       await db.insert('routes', {
-        'route_no': routeNo,
-        'seq_from': seqFrom,
-        'seq_to': seqTo,
+        'RouteCode': routeCode,
+        'TownCode': townCode,
+        'Description': desc,
+        'ServiceDayFrom': dayFrom,
+        'ServiceDayTo': dayTo,
+        'DueDay': dueDay,
+        'SequenceFrom': seqFrom,
+        'SequenceTo': seqTo,
       });
     } else {
       await db.update(
         'routes',
-        {'seq_from': seqFrom, 'seq_to': seqTo},
-        where: 'route_no = ?',
-        whereArgs: [routeNo],
+        {'SequenceFrom': seqFrom, 'SequenceTo': seqTo},
+        where: 'RouteCode = ?',
+        whereArgs: [routeCode],
       );
     }
   }
 
-  Future<int> deleteRoute(String routeNo) async {
+  Future<int> deleteRoute(String routeCode) async {
     final db = await database;
 
     return await db.delete(
       'routes',
-      where: 'route_no = ?',
-      whereArgs: [routeNo],
+      where: 'RouteCode = ?',
+      whereArgs: [routeCode],
     );
   }
 }
