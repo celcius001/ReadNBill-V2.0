@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:readnbill/database/database_helper.dart';
 import 'package:readnbill/models/tempreading_model.dart';
-import 'package:sqflite/sqlite_api.dart';
 
 class TransactionPage extends StatefulWidget {
   final TempModel reading;
@@ -16,6 +15,18 @@ class _TransactionPageState extends State<TransactionPage> {
       TextEditingController();
 
   double kwhUsed = 0.0;
+
+  @override
+  void initState() {
+    super.initState();
+
+    if (widget.reading.powerReading > 0) {
+      presentReadingController.text = widget.reading.powerReading
+          .toStringAsFixed(0);
+
+      _calculateUsed();
+    }
+  }
 
   Future<void> _saveReading() async {
     final presentReading =
