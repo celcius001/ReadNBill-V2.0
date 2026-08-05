@@ -113,7 +113,7 @@ class _DashboardPageState extends State<DashboardPage> {
                       children: [
                         const Text("Reading", style: TextStyle(fontSize: 12)),
                         Text(
-                          reading.powerReading.toStringAsFixed(0),
+                          reading.previousReading.toStringAsFixed(0),
                           style: const TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 16,

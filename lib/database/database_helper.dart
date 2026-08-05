@@ -1,4 +1,5 @@
 import 'package:path/path.dart';
+import 'package:readnbill/models/rate_model.dart';
 import 'package:readnbill/models/route_model.dart';
 import 'package:readnbill/models/tempreading_model.dart';
 import 'package:sqflite/sqflite.dart';
@@ -81,6 +82,67 @@ class DatabaseHelper {
         BCAmount REAL
       )
     ''');
+
+    // Rates table
+    await db.execute('''
+      CREATE TABLE rates (
+        ConsumerType TEXT NOT NULL,
+        ServicePeriodEnd TEXT NOT NULL,
+        LifelineLevel REAL,
+
+        GenSysCharge REAL NOT NULL,
+        FBHCCharge REAL,
+        FPCAAdjCharge REAL,
+        ICERA REAL,
+        OGACharge REAL,
+        OGACurrCharge REAL,
+        SysLossCharge REAL NOT NULL,
+        OSLACharge REAL,
+        OSLACurrCharge REAL,
+        TransDemCharge REAL,
+        OTCADemCharge REAL,
+        OTCADemCurrCharge REAL,
+        TransSysCharge REAL NOT NULL,
+        OTCASysCharge REAL NOT NULL,
+        OTCASysCurrCharge REAL,
+        DistribDemCharge REAL,
+        DistribSysCharge REAL NOT NULL,
+        SupplyRetCusCharge REAL NOT NULL,
+        SupplySysCharge REAL,
+        MetRetCusCharge REAL NOT NULL,
+        MetSysCharge REAL,
+        PAR REAL,
+        LoanCondonation REAL NOT NULL,
+        LifeLineRateSubsidy REAL NOT NULL,
+        OLRACharge REAL,
+        OLRACurrCharge REAL,
+        SeniorCitizenSubsidy REAL NOT NULL,
+        OSrRACharge REAL,
+        ICCSCharge REAL,
+        VATGen REAL NOT NULL,
+        VATTrans REAL NOT NULL,
+        VATSL REAL NOT NULL,
+        VATDist REAL NOT NULL,
+        VATOthers REAL NOT NULL,
+        UCMissElecCharge REAL NOT NULL,
+        MEREDCICharge REAL NOT NULL,
+        UCEnvCharge REAL NOT NULL,
+        StrandedCost REAL,
+        NPCSDCharge REAL NOT NULL,
+        FITAllCharge REAL NOT NULL,
+        DefAcctgAdj REAL,
+        PPACharge REAL,
+        OGA3Charge REAL,
+        OTCASys3Charge REAL,
+        OTCADem3Charge REAL,
+        OSLA3Charge REAL,
+        OLRA3Charge REAL,
+        RealPropertyTax REAL,
+        FranchiseTax REAL,
+
+        PRIMARY KEY (ConsumerType, ServicePeriodEnd)
+      )
+    ''');
   }
 
   Future<List<RouteModel>> getRoutes() async {
@@ -159,6 +221,36 @@ class DatabaseHelper {
     await batch.commit(noResult: true);
   }
 
+  Future<void> saveRates(List<RateModel> rates) async {
+    final db = await database;
+
+    final batch = db.batch();
+
+    for (final rate in rates) {
+      batch.insert(
+        'rates',
+        rate.toMap(),
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    }
+
+    await batch.commit(noResult: true);
+  }
+
+  Future<int> updateReading({
+    required String accountNumber,
+    required Map<String, dynamic> values,
+  }) async {
+    final db = await database;
+
+    return db.update(
+      'temp_readings',
+      values,
+      where: 'AccountNumber = ?',
+      whereArgs: [accountNumber],
+    );
+  }
+
   Future<void> deleteRoute(String routeCode) async {
     final db = await database;
 
@@ -177,5 +269,17 @@ class DatabaseHelper {
         whereArgs: [routeCode],
       );
     });
+  }
+
+  Future<void> deleteRatesIfNoRoutes() async {
+    final db = await database;
+
+    final routeCount = Sqflite.firstIntValue(
+      await db.rawQuery('SELECT COUNT(*) FROM routes'),
+    );
+
+    if (routeCount == 0) {
+      await db.delete('rates');
+    }
   }
 }

@@ -56,6 +56,8 @@ class _RoutePageState extends State<RoutePage> {
                 onPressed: () async {
                   await DatabaseHelper.instance.deleteRoute(routeNo);
 
+                  await DatabaseHelper.instance.deleteRatesIfNoRoutes();
+
                   if (!mounted) return;
 
                   Navigator.pop(context);
@@ -150,6 +152,8 @@ class _RoutePageState extends State<RoutePage> {
                     seqTo: seqTo,
                   );
 
+                  final rates = await api.downloadRates();
+
                   await DatabaseHelper.instance.saveRoute(
                     route.routeCode,
                     route.townCode,
@@ -162,6 +166,8 @@ class _RoutePageState extends State<RoutePage> {
                   );
 
                   await DatabaseHelper.instance.saveTempReadings(readings);
+
+                  await DatabaseHelper.instance.saveRates(rates);
 
                   if (!mounted) return;
 
@@ -179,8 +185,6 @@ class _RoutePageState extends State<RoutePage> {
                   );
                 } catch (e) {
                   if (!mounted) return;
-                  // print(e);
-                  // print(stack);
 
                   navigator.pop(); // Close loading dialog
 

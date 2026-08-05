@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:readnbill/models/rate_model.dart';
 import 'package:readnbill/models/route_model.dart';
 import 'package:readnbill/models/tempreading_model.dart';
 
@@ -34,6 +35,19 @@ class ApiService {
     if (response.statusCode == 200) {
       final List<dynamic> jsonList = jsonDecode(response.body);
       return jsonList.map((json) => TempModel.fromJson(json)).toList();
+    }
+
+    throw Exception("Failed to download route.");
+  }
+
+  Future<List<RateModel>> downloadRates() async {
+    final uri = Uri.parse("$baseUrl/rate");
+
+    final response = await http.get(uri);
+
+    if (response.statusCode == 200) {
+      final List<dynamic> jsonList = jsonDecode(response.body);
+      return jsonList.map((json) => RateModel.fromJson(json)).toList();
     }
 
     throw Exception("Failed to download route.");

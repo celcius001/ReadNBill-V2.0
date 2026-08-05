@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:readnbill/database/database_helper.dart';
 import 'package:readnbill/models/tempreading_model.dart';
+import 'package:sqflite/sqlite_api.dart';
 
 class TransactionPage extends StatefulWidget {
   final TempModel reading;
@@ -15,12 +17,40 @@ class _TransactionPageState extends State<TransactionPage> {
 
   double kwhUsed = 0.0;
 
+  Future<void> _saveReading() async {
+    final presentReading =
+        double.tryParse(presentReadingController.text) ?? 0.0;
+
+    if (presentReading < widget.reading.previousReading) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            "Present reading cannot be less than previous reading.",
+          ),
+        ),
+      );
+      return;
+    }
+
+    await DatabaseHelper.instance.updateReading(
+      accountNumber: widget.reading.accountNumber,
+      values: {
+        'PowerReadings': presentReading,
+        'ReadingDate': DateTime.now().toIso8601String(),
+      },
+    );
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Reading saved successfully.')),
+    );
+  }
+
   void _calculateUsed() {
     final presentReading =
         double.tryParse(presentReadingController.text) ?? 0.0;
 
     setState(() {
-      kwhUsed = presentReading - widget.reading.powerReading;
+      kwhUsed = presentReading - widget.reading.previousReading;
 
       if (kwhUsed < 0) {
         kwhUsed = 0.0;
@@ -52,7 +82,7 @@ class _TransactionPageState extends State<TransactionPage> {
                     _infoRow("Meter No.", widget.reading.meterNumber),
                     _infoRow(
                       "Previous Reading",
-                      widget.reading.powerReading.toStringAsFixed(0),
+                      widget.reading.previousReading.toStringAsFixed(0),
                     ),
                   ],
                 ),
@@ -94,14 +124,7 @@ class _TransactionPageState extends State<TransactionPage> {
                 icon: const Icon(Icons.print),
                 label: const Text("Generate Bill"),
                 onPressed: () async {
-                  if (presentReadingController.text.isEmpty) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text("Please enter the present reading."),
-                      ),
-                    );
-                    return;
-                  }
+                  await _saveReading();
                 },
               ),
             ),
