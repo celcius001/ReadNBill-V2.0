@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:readnbill/screen/dashboard_page.dart';
-import 'package:readnbill/screen/report_page.dart';
-import 'package:readnbill/screen/route_page.dart';
+import 'package:readnbill/screens/dashboard_page.dart';
+import 'package:readnbill/screens/report_page.dart';
+import 'package:readnbill/screens/route_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});

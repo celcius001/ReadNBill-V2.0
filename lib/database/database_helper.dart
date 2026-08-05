@@ -1,5 +1,6 @@
 import 'package:path/path.dart';
 import 'package:readnbill/models/route_model.dart';
+import 'package:readnbill/models/tempreading_model.dart';
 import 'package:sqflite/sqflite.dart';
 
 class DatabaseHelper {
@@ -37,6 +38,49 @@ class DatabaseHelper {
         SequenceTo INTEGER NOT NULL
       )
     ''');
+
+    // TempReadings table
+    await db.execute('''
+      CREATE TABLE temp_readings(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        ServicePeriodEnd TEXT,
+        AccountNumber TEXT,
+        Route TEXT,
+        SequenceNumber INTEGER,
+        ConsumerName TEXT,
+        ConsumerAddress TEXT,
+        MeterNumber TEXT,
+        PreviousReading2 REAL,
+        PreviousReading1 REAL,
+        PreviousReading REAL,
+        ReadingDate TEXT,
+        ReadBy TEXT,
+        PowerReadings REAL,
+        DemandReadings REAL,
+        FieldFindings TEXT,
+        MissCodes TEXT,
+        Remarks TEXT,
+        UpdateStatus TEXT,
+        ConsumerType TEXT,
+        AccountStatus TEXT,
+        ShortAccountNumber TEXT,
+        Multiplier REAL,
+        MeterDigits INTEGER,
+        Coreloss REAL,
+        CorelossKWHLimit REAL,
+        AdditionalKWH REAL,
+        TSFRental REAL,
+        SchoolTag TEXT,
+        SDiscountStatus TEXT,
+        ConnectionDate TEXT,
+        QCAmount REAL,
+        KWHConsumption REAL,
+        PCAmount REAL,
+        EPAmount REAL,
+        ArrAmount REAL,
+        BCAmount REAL
+      )
+    ''');
   }
 
   Future<List<RouteModel>> getRoutes() async {
@@ -45,6 +89,19 @@ class DatabaseHelper {
     final result = await db.query('routes');
 
     return result.map<RouteModel>((row) => RouteModel.fromMap(row)).toList();
+  }
+
+  Future<List<TempModel>> getReadingsByRoute(String routeCode) async {
+    final db = await database;
+
+    final result = await db.query(
+      'temp_readings',
+      where: 'Route = ?',
+      whereArgs: [routeCode],
+      orderBy: 'SequenceNumber ASC',
+    );
+
+    return result.map<TempModel>((row) => TempModel.fromMap(row)).toList();
   }
 
   Future<void> saveRoute(
@@ -86,13 +143,39 @@ class DatabaseHelper {
     }
   }
 
-  Future<int> deleteRoute(String routeCode) async {
+  Future<void> saveTempReadings(List<TempModel> readings) async {
     final db = await database;
 
-    return await db.delete(
-      'routes',
-      where: 'RouteCode = ?',
-      whereArgs: [routeCode],
-    );
+    final batch = db.batch();
+
+    for (final reading in readings) {
+      batch.insert(
+        'temp_readings',
+        reading.toMap(),
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    }
+
+    await batch.commit(noResult: true);
+  }
+
+  Future<void> deleteRoute(String routeCode) async {
+    final db = await database;
+
+    await db.transaction((txn) async {
+      // Delete associated temp readings first
+      await txn.delete(
+        'temp_readings',
+        where: 'Route = ?',
+        whereArgs: [routeCode],
+      );
+
+      // Then delete the route
+      await txn.delete(
+        'routes',
+        where: 'RouteCode = ?',
+        whereArgs: [routeCode],
+      );
+    });
   }
 }

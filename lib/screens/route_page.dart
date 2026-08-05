@@ -123,31 +123,69 @@ class _RoutePageState extends State<RoutePage> {
                 final seqFrom = int.parse(seqFromController.text.trim());
                 final seqTo = int.parse(seqToController.text.trim());
 
-                // Download route from the API
-                final route = await api.downloadRoute(routeCode: routeCode);
+                final navigator = Navigator.of(context);
+                final messenger = ScaffoldMessenger.of(context);
 
-                await DatabaseHelper.instance.saveRoute(
-                  route.routeCode,
-                  route.townCode,
-                  route.description,
-                  route.serviceDayFrom,
-                  route.serviceDayTo,
-                  route.dueDay,
-                  seqFrom,
-                  seqTo,
+                showDialog(
+                  context: context,
+                  barrierDismissible: false,
+                  builder:
+                      (_) => const AlertDialog(
+                        content: Row(
+                          children: [
+                            CircularProgressIndicator(),
+                            SizedBox(width: 20),
+                            Expanded(child: Text("Downloading route...")),
+                          ],
+                        ),
+                      ),
                 );
 
-                if (!mounted) return;
+                try {
+                  final route = await api.downloadRoute(routeCode: routeCode);
 
-                await _loadRoutes();
+                  final readings = await api.downloadTemp(
+                    routeCode: routeCode,
+                    seqFrom: seqFrom,
+                    seqTo: seqTo,
+                  );
 
-                if (context.mounted) {
-                  Navigator.pop(context);
+                  await DatabaseHelper.instance.saveRoute(
+                    route.routeCode,
+                    route.townCode,
+                    route.description,
+                    route.serviceDayFrom,
+                    route.serviceDayTo,
+                    route.dueDay,
+                    seqFrom,
+                    seqTo,
+                  );
 
-                  ScaffoldMessenger.of(context).showSnackBar(
+                  await DatabaseHelper.instance.saveTempReadings(readings);
+
+                  if (!mounted) return;
+
+                  await _loadRoutes();
+
+                  if (!mounted) return;
+
+                  navigator.pop(); // Close loading dialog
+                  navigator.pop(); // Close Add Route dialog
+
+                  messenger.showSnackBar(
                     const SnackBar(
                       content: Text("Route downloaded successfully."),
                     ),
+                  );
+                } catch (e) {
+                  if (!mounted) return;
+                  // print(e);
+                  // print(stack);
+
+                  navigator.pop(); // Close loading dialog
+
+                  messenger.showSnackBar(
+                    SnackBar(content: Text("Download failed: $e")),
                   );
                 }
               },
