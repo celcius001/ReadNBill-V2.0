@@ -44,7 +44,7 @@ class DatabaseHelper {
       CREATE TABLE temp_readings(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         ServicePeriodEnd TEXT,
-        AccountNumber TEXT,
+        AccountNumber TEXT UNIQUE,
         Route TEXT,
         SequenceNumber INTEGER,
         ConsumerName TEXT,
