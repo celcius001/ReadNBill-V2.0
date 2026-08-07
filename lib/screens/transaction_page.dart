@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:readnbill/database/database_helper.dart';
+import 'package:readnbill/models/rate_model.dart';
 import 'package:readnbill/models/tempreading_model.dart';
+import 'package:readnbill/screens/printer_settings_page.dart';
+import 'package:readnbill/services/billing_calculator.dart';
+import 'package:readnbill/services/printer_service.dart';
 
 class TransactionPage extends StatefulWidget {
   final TempModel reading;
@@ -54,6 +58,44 @@ class _TransactionPageState extends State<TransactionPage> {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Reading saved successfully.')),
     );
+  }
+
+  Future<void> _generateBill() async {
+    // Save the reading first
+    await _saveReading();
+
+    // Get the rates from the database
+    final rate = await DatabaseHelper.instance.getRate(
+      widget.reading.consumerType,
+    );
+
+    if (rate == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No rates found for this consumer type.')),
+      );
+      return;
+    }
+
+    // Calculate the bill based on the rates and kWh used
+    final billSummary = BillingCalculator.generateBill(
+      rate: rate,
+      reading: widget.reading,
+      presentReading: widget.reading.powerReading,
+    );
+    try {
+      // Print the bill
+      await PrinterService.instance.printBill(billSummary);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Bill generated and printed successfully.'),
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Failed to print bill: $e')));
+    }
   }
 
   void _calculateUsed() {
@@ -135,7 +177,7 @@ class _TransactionPageState extends State<TransactionPage> {
                 icon: const Icon(Icons.print),
                 label: const Text("Generate Bill"),
                 onPressed: () async {
-                  await _saveReading();
+                  await _generateBill();
                 },
               ),
             ),
@@ -162,3 +204,9 @@ Widget _infoRow(String label, String value) {
     ),
   );
 }
+
+// class BillingCalculator {
+//   static double generationChange(RateModel rate, double kwhUsed) {
+//     return rate.genSysCharge * kwhUsed;
+//   }
+// }

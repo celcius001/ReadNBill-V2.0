@@ -166,6 +166,23 @@ class DatabaseHelper {
     return result.map<TempModel>((row) => TempModel.fromMap(row)).toList();
   }
 
+  Future<RateModel?> getRate(String consumerType) async {
+    final db = await database;
+
+    final result = await db.query(
+      'rates',
+      where: 'ConsumerType = ?',
+      whereArgs: [consumerType],
+      limit: 1,
+    );
+
+    if (result.isNotEmpty) {
+      return RateModel.fromMap(result.first);
+    } else {
+      return null;
+    }
+  }
+
   Future<void> saveRoute(
     String routeCode,
     String townCode,

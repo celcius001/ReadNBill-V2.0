@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:readnbill/screens/dashboard_page.dart';
+import 'package:readnbill/screens/printer_settings_page.dart';
 import 'package:readnbill/screens/report_page.dart';
 import 'package:readnbill/screens/route_page.dart';
 
@@ -42,7 +43,56 @@ class _HomePageState extends State<HomePage> {
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text("Read & Bill")),
+      appBar: AppBar(
+        title: const Text("Read & Bill"),
+        actions: [
+          PopupMenuButton<String>(
+            onSelected: (value) {
+              switch (value) {
+                case 'printer':
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const PrinterSettingsPage(),
+                    ),
+                  );
+                  break;
+
+                case 'about':
+                  showAboutDialog(
+                    context: context,
+                    applicationName: 'Read & Bill',
+                    applicationVersion: '1.0.0',
+                  );
+                  break;
+              }
+            },
+            itemBuilder:
+                (context) => const [
+                  PopupMenuItem(
+                    value: 'printer',
+                    child: Row(
+                      children: [
+                        Icon(Icons.print),
+                        SizedBox(width: 10),
+                        Text('Printer Setup'),
+                      ],
+                    ),
+                  ),
+                  PopupMenuItem(
+                    value: 'about',
+                    child: Row(
+                      children: [
+                        Icon(Icons.info),
+                        SizedBox(width: 10),
+                        Text('About'),
+                      ],
+                    ),
+                  ),
+                ],
+          ),
+        ],
+      ),
       body: currentScreen,
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,

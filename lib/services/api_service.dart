@@ -1,11 +1,12 @@
 import 'dart:convert';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import 'package:readnbill/models/rate_model.dart';
 import 'package:readnbill/models/route_model.dart';
 import 'package:readnbill/models/tempreading_model.dart';
 
 class ApiService {
-  static const String baseUrl = "http://192.168.0.142:8000/api/v1";
+  final baseUrl = dotenv.env["API_BASE_URL"]!;
 
   Future<RouteModel> downloadRoute({required String routeCode}) async {
     final uri = Uri.parse("$baseUrl/route?RouteCode=$routeCode");
