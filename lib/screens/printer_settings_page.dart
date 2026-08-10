@@ -1,6 +1,5 @@
 import 'package:blue_thermal_printer/blue_thermal_printer.dart';
 import 'package:flutter/material.dart';
-import 'package:readnbill/models/bill_summary.dart';
 import 'package:readnbill/services/printer_service.dart';
 
 class PrinterSettingsPage extends StatefulWidget {

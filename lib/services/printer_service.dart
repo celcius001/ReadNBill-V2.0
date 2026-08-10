@@ -41,67 +41,214 @@ class PrinterService {
   }
 
   Future<void> printBill(BillSummary summary) async {
-    String formatChargeLine(String description, double rate, double amount) {
-      final desc = description.padRight(15).substring(0, 15);
-      final rateText = rate.toStringAsFixed(4).padLeft(8);
-      final amountText = amount.toStringAsFixed(2).padLeft(9);
+    // ==========================================
+    // 58mm Printer Formatting
+    // ==========================================
+    const int lineWidth = 32;
+    String alignLeftRight(String left, String right, {int width = lineWidth}) {
+      final spaces = width - left.length - right.length;
+
+      if (spaces <= 0) {
+        return "$left $right";
+      }
+      return left + (" " * spaces) + right;
+    }
+
+    String alignCharge(String description, double rate, double amount) {
+      const int descriptionWidth = 14;
+      const int rateWidth = 8;
+      const int amountWidth = 10;
+
+      final desc =
+          description.length > descriptionWidth
+              ? description.substring(0, descriptionWidth)
+              : description.padRight(descriptionWidth);
+
+      final rateText = rate.toStringAsFixed(4).padLeft(rateWidth);
+      final amountText = amount.toStringAsFixed(2).padLeft(amountWidth);
 
       return "$desc$rateText$amountText";
     }
 
-    await printer.printCustom("BOHECO II", 3, 1);
-    await printer.printCustom("READ & BILL", 2, 1);
+    // String formatChargeLine(String description, double rate, double amount) {
+    //   final desc = description.padRight(15).substring(0, 15);
+    //   final rateText = rate.toStringAsFixed(4).padLeft(8);
+    //   final amountText = amount.toStringAsFixed(2).padLeft(9);
+
+    //   return "$desc$rateText$amountText";
+    // }
+
+    String getCurrentDate() {
+      final now = DateTime.now();
+      return "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')} ${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}";
+    }
+
+    await printer.printCustom("BOHOL II ELECTRIC", 3, 1);
+    await printer.printCustom("COOPERATIVE, INC.", 3, 1);
+    await printer.printCustom("(BOHECO II)", 2, 1);
+    await printer.printCustom("Cantagay, Jagna, Bohol", 1, 1);
+    await printer.printCustom("VAT Reg. TIN 002-030-585-00000", 1, 1);
     await printer.printNewLine();
 
-    await printer.printLeftRight(
-      "Date",
-      DateTime.now().toString().substring(0, 19),
+    await printer.printCustom("BILLING INVOICE", 2, 1);
+    await printer.printNewLine();
+
+    await printer.printCustom(getCurrentDate(), 1, 1);
+
+    await printer.printNewLine();
+    await printer.printCustom(summary.reading.accountNumber, 2, 1);
+    await printer.printCustom(summary.reading.consumerName, 2, 1);
+    await printer.printCustom(summary.reading.consumerAddress, 1, 1);
+
+    await printer.printCustom("TIN: ", 1, 0);
+    await printer.printCustom("BStyle: ", 1, 0);
+    await printer.printCustom(
+      alignLeftRight("Meter No.", summary.reading.meterNumber),
+      1,
+      0,
+    );
+    await printer.printCustom(
+      alignLeftRight("Consumer Type", summary.reading.consumerType),
+      1,
+      0,
+    );
+    await printer.printCustom(
+      alignLeftRight("Billing Month", summary.reading.servicePeriodEnd),
+      1,
+      0,
+    );
+    await printer.printCustom(
+      alignLeftRight(
+        "Present Reading",
+        summary.presentReading.toStringAsFixed(0),
+      ),
+      1,
+      0,
+    );
+    await printer.printCustom(
+      alignLeftRight(
+        "Previous Reading",
+        summary.reading.previousReading.toStringAsFixed(0),
+      ),
+      1,
       0,
     );
 
-    await printer.printNewLine();
-
-    await printer.printCustom("CONSUMER", 2, 1);
-
-    await printer.printLeftRight("Name", summary.reading.consumerName, 0);
-
-    await printer.printLeftRight("Account", summary.reading.accountNumber, 0);
-
-    await printer.printLeftRight(
-      "Previous",
-      summary.reading.previousReading.toStringAsFixed(0),
-      0,
-    );
-
-    await printer.printLeftRight(
-      "Used kWh",
-      summary.usedKwh.toStringAsFixed(0),
-      0,
-    );
-
-    await printer.printNewLine();
-    await printer.printCustom("CHARGES", 2, 1);
-
-    await printer.printCustom("---------------------------------------", 0, 0);
-
-    for (final item in summary.items) {
+    if (summary.reading.coreloss > 0) {
       await printer.printCustom(
-        formatChargeLine(item.description, item.rate, item.amount),
+        alignLeftRight("Coreloss", summary.reading.coreloss.toStringAsFixed(0)),
         1,
         0,
       );
     }
 
-    await printer.printNewLine();
+    if (summary.reading.additionalKWH > 0) {
+      await printer.printCustom(
+        alignLeftRight(
+          "Additional kWh",
+          summary.reading.additionalKWH.toStringAsFixed(0),
+        ),
+        1,
+        0,
+      );
+    }
 
-    await printer.printLeftRight(
-      "TOTAL",
-      summary.totalAmount.toStringAsFixed(2),
+    await printer.printCustom(
+      alignLeftRight("kWh Used", summary.usedKwh.toStringAsFixed(0)),
       1,
+      0,
     );
 
+    await printer.printCustom("--------------------------------", 1, 0);
+
+    // await printer.printLeftRight(
+    //   "Previous",
+    //   summary.reading.previousReading.toStringAsFixed(0),
+    //   0,
+    // );
+
+    // await printer.printLeftRight(
+    //   "Used kWh",
+    //   summary.usedKwh.toStringAsFixed(0),
+    //   0,
+    // );
+
+    // await printer.printNewLine();
+    // await printer.printCustom("CHARGES", 2, 1);
+
+    // await printer.printCustom("---------------------------------------", 0, 0);
+
+    // GENERATION CHARGES
+    for (final item in summary.generationItems) {
+      await printer.printCustom(
+        alignCharge(item.description, item.rate, item.amount),
+        1,
+        0,
+      );
+    }
+    await printer.printCustom("--------------------------------", 1, 0);
+    await printer.printCustom(
+      alignLeftRight(
+        "Sub-Total Gen",
+        summary.generationSubtotal.toStringAsFixed(2),
+      ),
+      1,
+      0,
+    );
+    await printer.printCustom("--------------------------------", 1, 0);
+
+    // TRANSMISSION CHARGES
+    for (final item in summary.transmissionItems) {
+      await printer.printCustom(
+        alignCharge(item.description, item.rate, item.amount),
+        1,
+        0,
+      );
+    }
+
+    await printer.printCustom("--------------------------------", 1, 0);
+    await printer.printCustom(
+      alignLeftRight(
+        "Sub-Total Trans",
+        summary.transmissionSubtotal.toStringAsFixed(2),
+      ),
+      1,
+      0,
+    );
+    await printer.printCustom("--------------------------------", 1, 0);
+
+    // DISTRIBUTION CHARGES
+    for (final item in summary.distributionItems) {
+      await printer.printCustom(
+        alignCharge(item.description, item.rate, item.amount),
+        1,
+        0,
+      );
+    }
+
+    await printer.printCustom("--------------------------------", 1, 0);
+    await printer.printCustom(
+      alignLeftRight(
+        "Sub-Total Dist",
+        summary.distributionSubtotal.toStringAsFixed(2),
+      ),
+      1,
+      0,
+    );
+    await printer.printCustom("--------------------------------", 1, 0);
     await printer.printNewLine();
-    await printer.printCustom("Thank you for using Read & Bill!", 1, 1);
+    await printer.printNewLine();
+
+    // await printer.printNewLine();
+
+    // await printer.printLeftRight(
+    //   "TOTAL",
+    //   summary.totalAmount.toStringAsFixed(2),
+    //   1,
+    // );
+
+    // await printer.printNewLine();
+    // await printer.printCustom("Thank you for using Read & Bill!", 1, 1);
 
     await printer.paperCut();
   }

@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:readnbill/database/database_helper.dart';
-import 'package:readnbill/models/rate_model.dart';
 import 'package:readnbill/models/tempreading_model.dart';
-import 'package:readnbill/screens/printer_settings_page.dart';
 import 'package:readnbill/services/billing_calculator.dart';
 import 'package:readnbill/services/printer_service.dart';
 
@@ -80,7 +78,11 @@ class _TransactionPageState extends State<TransactionPage> {
     final billSummary = BillingCalculator.generateBill(
       rate: rate,
       reading: widget.reading,
-      presentReading: widget.reading.powerReading,
+      previousReading: widget.reading.previousReading,
+      presentReading:
+          presentReadingController.text.isNotEmpty
+              ? double.parse(presentReadingController.text)
+              : widget.reading.previousReading,
     );
     try {
       // Print the bill
