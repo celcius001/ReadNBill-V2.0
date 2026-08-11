@@ -14,6 +14,9 @@ class BillingCalculator {
 
     final items = <BillItem>[];
 
+    // Senior Citizen Discount
+    double seniorCitizenDiscount = 0.0;
+
     void addCharge(String description, double? rateValue, double quantity) {
       if (rateValue == null || rateValue <= 0) return;
 
@@ -24,6 +27,23 @@ class BillingCalculator {
           amount: rateValue * quantity,
         ),
       );
+    }
+
+    if (reading.sdiscountStatus == "YES") {
+      final a =
+          rate.genSysCharge +
+          rate.transSysCharge +
+          rate.sysLossCharge +
+          (rate.metSysCharge ?? 0.0) +
+          rate.distribSysCharge +
+          (rate.supplySysCharge ?? 0.0);
+      final b = rate.metRetCusCharge + rate.lifeLineRateSubsidy;
+
+      if (usedKwh < 100) {
+        seniorCitizenDiscount = -(((a * usedKwh) + b) * 0.05);
+      } else {
+        -(((a * usedKwh) + rate.metRetCusCharge) * 0.05);
+      }
     }
 
     // GENERATION
@@ -58,6 +78,23 @@ class BillingCalculator {
     addCharge("MetSysCharge", rate.metSysCharge, usedKwh);
     addCharge("PAR", rate.par, usedKwh);
     addCharge("RFSC", rate.loanCondonation, usedKwh);
+
+    // OTHERS
+    addCharge("Lifeline", rate.lifeLineRateSubsidy, usedKwh);
+    addCharge("Olra", rate.olraCharge, usedKwh);
+    addCharge("OlraCurr", rate.olraCurrCharge, usedKwh);
+    addCharge("Olra3Curr", rate.olra3Charge, usedKwh);
+    if (seniorCitizenDiscount < 0) {
+      items.add(
+        BillItem(
+          description: "SrDisc",
+          rate: 0.05,
+          amount: seniorCitizenDiscount,
+        ),
+      );
+    } else {
+      addCharge("SrSub", rate.seniorCitizenSubsidy, usedKwh);
+    }
 
     // Fixed Charges
     addCharge("Supply Charge", rate.supplyRetCusCharge, 1);
@@ -141,6 +178,23 @@ class BillingCalculator {
       (sum, item) => sum + item.amount,
     );
 
+    final otherItems =
+        items
+            .where(
+              (item) =>
+                  item.description == "Lifeline" ||
+                  item.description == "Olra" ||
+                  item.description == "OlraCurr" ||
+                  item.description == "Olra3Curr" ||
+                  item.description == "SrSub" ||
+                  item.description == "SrDisc",
+            )
+            .toList();
+    final otherSubtotal = otherItems.fold(
+      0.0,
+      (sum, item) => sum + item.amount,
+    );
+
     final total = items.fold(0.0, (sum, item) => sum + item.amount);
 
     return BillSummary(
@@ -154,6 +208,8 @@ class BillingCalculator {
       transmissionSubtotal: transmissionSubtotal,
       distributionItems: distributionItems,
       distributionSubtotal: distributionSubtotal,
+      otherItems: otherItems,
+      otherSubtotal: otherSubtotal,
       totalAmount: total,
     );
   }

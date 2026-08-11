@@ -10,10 +10,11 @@ class BillSummary {
   final List<BillItem> generationItems;
   final List<BillItem> transmissionItems;
   final List<BillItem> distributionItems;
+  final List<BillItem> otherItems;
   final double generationSubtotal;
   final double transmissionSubtotal;
   final double distributionSubtotal;
-
+  final double otherSubtotal;
   final double totalAmount;
 
   const BillSummary({
@@ -27,6 +28,8 @@ class BillSummary {
     required this.transmissionSubtotal,
     required this.distributionItems,
     required this.distributionSubtotal,
+    required this.otherItems,
+    required this.otherSubtotal,
     required this.totalAmount,
   });
 }

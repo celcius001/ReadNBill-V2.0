@@ -161,23 +161,6 @@ class PrinterService {
 
     await printer.printCustom("--------------------------------", 1, 0);
 
-    // await printer.printLeftRight(
-    //   "Previous",
-    //   summary.reading.previousReading.toStringAsFixed(0),
-    //   0,
-    // );
-
-    // await printer.printLeftRight(
-    //   "Used kWh",
-    //   summary.usedKwh.toStringAsFixed(0),
-    //   0,
-    // );
-
-    // await printer.printNewLine();
-    // await printer.printCustom("CHARGES", 2, 1);
-
-    // await printer.printCustom("---------------------------------------", 0, 0);
-
     // GENERATION CHARGES
     for (final item in summary.generationItems) {
       await printer.printCustom(
@@ -229,8 +212,27 @@ class PrinterService {
     await printer.printCustom("--------------------------------", 1, 0);
     await printer.printCustom(
       alignLeftRight(
-        "Sub-Total Dist",
+        "Sub-Total DSM",
         summary.distributionSubtotal.toStringAsFixed(2),
+      ),
+      1,
+      0,
+    );
+    await printer.printCustom("--------------------------------", 1, 0);
+    // DISTRIBUTION CHARGES
+    for (final item in summary.otherItems) {
+      await printer.printCustom(
+        alignCharge(item.description, item.rate, item.amount),
+        1,
+        0,
+      );
+    }
+
+    await printer.printCustom("--------------------------------", 1, 0);
+    await printer.printCustom(
+      alignLeftRight(
+        "Sub-Total Other",
+        summary.otherSubtotal.toStringAsFixed(2),
       ),
       1,
       0,
