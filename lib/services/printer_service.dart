@@ -70,14 +70,6 @@ class PrinterService {
       return "$desc$rateText$amountText";
     }
 
-    // String formatChargeLine(String description, double rate, double amount) {
-    //   final desc = description.padRight(15).substring(0, 15);
-    //   final rateText = rate.toStringAsFixed(4).padLeft(8);
-    //   final amountText = amount.toStringAsFixed(2).padLeft(9);
-
-    //   return "$desc$rateText$amountText";
-    // }
-
     String getCurrentDate() {
       final now = DateTime.now();
       return "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')} ${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}";
@@ -219,7 +211,8 @@ class PrinterService {
       0,
     );
     await printer.printCustom("--------------------------------", 1, 0);
-    // DISTRIBUTION CHARGES
+
+    // OTHER CHARGES
     for (final item in summary.otherItems) {
       await printer.printCustom(
         alignCharge(item.description, item.rate, item.amount),
@@ -236,6 +229,80 @@ class PrinterService {
       ),
       1,
       0,
+    );
+    await printer.printCustom("--------------------------------", 1, 0);
+
+    // VAT CHARGES
+    for (final item in summary.vatItems) {
+      await printer.printCustom(
+        alignCharge(item.description, item.rate, item.amount),
+        1,
+        0,
+      );
+    }
+
+    await printer.printCustom("--------------------------------", 1, 0);
+    await printer.printCustom(
+      alignLeftRight("Sub-Total VAT", summary.vatSubtotal.toStringAsFixed(2)),
+      1,
+      0,
+    );
+    await printer.printCustom("--------------------------------", 1, 0);
+
+    // GOVT CHARGES
+    for (final item in summary.govtItems) {
+      await printer.printCustom(
+        alignCharge(item.description, item.rate, item.amount),
+        1,
+        0,
+      );
+    }
+
+    await printer.printCustom("--------------------------------", 1, 0);
+    await printer.printCustom(
+      alignLeftRight("Sub-Total GOVT", summary.govtSubtotal.toStringAsFixed(2)),
+      1,
+      0,
+    );
+    await printer.printCustom("--------------------------------", 1, 0);
+    await printer.printCustom("Total Billing (VAT Inclusive)", 1, 0);
+    await printer.printCustom(
+      "PHP ${summary.totalAmount.toStringAsFixed(2)}",
+      2,
+      2,
+    );
+    await printer.printCustom(
+      alignLeftRight(
+        "VATableSales",
+        summary.vatSaleSubtotal.toStringAsFixed(2),
+      ),
+      1,
+      0,
+    );
+    await printer.printCustom(
+      alignLeftRight("VATAmount", summary.vatSubtotal.toStringAsFixed(2)),
+      1,
+      0,
+    );
+    await printer.printCustom(
+      alignLeftRight(
+        "VATZeroRatedSales",
+        summary.vatZeroSubtotal.toStringAsFixed(2),
+      ),
+      1,
+      0,
+    );
+    await printer.printCustom(
+      alignLeftRight("VATExemptSales", summary.govtSubtotal.toStringAsFixed(2)),
+      1,
+      0,
+    );
+    await printer.printCustom("--------------------------------", 1, 0);
+    await printer.printCustom("Total Amount Due", 1, 0);
+    await printer.printCustom(
+      "PHP ${summary.totalAmount.toStringAsFixed(2)}",
+      2,
+      2,
     );
     await printer.printCustom("--------------------------------", 1, 0);
     await printer.printNewLine();

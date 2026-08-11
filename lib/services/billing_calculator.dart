@@ -46,6 +46,15 @@ class BillingCalculator {
       }
     }
 
+    final vatDistAmount =
+        ((usedKwh * rate.vatDist) +
+            (rate.distribDemCharge ??
+                    0.0 + rate.supplyRetCusCharge + rate.metRetCusCharge) *
+                0.12);
+
+    final vatOtherAmount =
+        ((usedKwh * rate.vatOthers) + (reading.tsfRental * 0.12));
+
     // GENERATION
     addCharge("GenSys", rate.genSysCharge, usedKwh);
     addCharge("Oga", rate.ogaCharge, usedKwh);
@@ -64,6 +73,7 @@ class BillingCalculator {
     addCharge("OtcaDemCurr", rate.otcaDemCurrCharge, usedKwh);
     addCharge("OtcaDem3Curr", rate.otcaDem3Charge, usedKwh);
     addCharge("TransSysCharge", rate.transSysCharge, usedKwh);
+    addCharge("TransDemCharge", rate.transDemCharge, usedKwh);
     addCharge("AncSvcsCharge", rate.otcaSysCharge, usedKwh);
     addCharge("OtcaSysCurr", rate.otcaSysCurrCharge, usedKwh);
     addCharge("Otca3SysCurr", rate.otcaSys3Charge, usedKwh);
@@ -95,26 +105,44 @@ class BillingCalculator {
     } else {
       addCharge("SrSub", rate.seniorCitizenSubsidy, usedKwh);
     }
-
-    // Fixed Charges
-    addCharge("Supply Charge", rate.supplyRetCusCharge, 1);
-
-    addCharge("Metering Charge", rate.metRetCusCharge, 1);
+    addCharge("Osra", rate.osrRACharge, usedKwh);
 
     // VAT
+    if (vatDistAmount != 0) {
+      items.add(
+        BillItem(
+          description: "VATDist",
+          rate: rate.vatDist,
+          amount: vatDistAmount,
+        ),
+      );
+    }
+    if (vatOtherAmount != 0) {
+      items.add(
+        BillItem(
+          description: "VATOther",
+          rate: rate.vatOthers,
+          amount: vatOtherAmount,
+        ),
+      );
+    }
 
-    addCharge("VATDist", rate.vatDist, usedKwh);
+    // GOVT
+    addCharge("UC-ME-SPUG", rate.ucMissElecCharge, usedKwh);
+    addCharge("UC-REDCI", rate.meredciCharge, usedKwh);
+    addCharge("NPC-SD", rate.npcsdCharge, usedKwh);
+    addCharge("GEAAllow", rate.strandedCost, usedKwh);
+    addCharge("FITAllow", rate.fitAllCharge, usedKwh);
+    addCharge("EnvCharge", rate.ucEnvCharge, usedKwh);
 
-    // Universal Charges
-    addCharge("UC-ME", rate.ucMissElecCharge, usedKwh);
-
-    addCharge("FIT-All", rate.fitAllCharge, usedKwh);
-
-    addCharge("MEREDCI", rate.meredciCharge, usedKwh);
-
-    addCharge("NPCSD", rate.npcsdCharge, usedKwh);
-
-    addCharge("UC-Environmental", rate.ucEnvCharge, usedKwh);
+    // ADDITIONAL CHARGES
+    addCharge("Ftx", rate.franchiseTax, usedKwh);
+    addCharge("Rpt", rate.realPropertyTax, usedKwh);
+    addCharge("QCAmount", reading.qcAmount, usedKwh);
+    addCharge("EPAmount", reading.epAmount, usedKwh);
+    addCharge("PCAmount", reading.pcAmount, usedKwh);
+    addCharge("BCAmount", reading.bcAmount, usedKwh);
+    addCharge("TSFRental", reading.tsfRental, usedKwh);
 
     // Calculate substotal
     final generationItems =
@@ -147,6 +175,7 @@ class BillingCalculator {
                   item.description == "OtcaDemCurr" ||
                   item.description == "OtcaDem3Curr" ||
                   item.description == "TransSysCharge" ||
+                  item.description == "TransDemCharge" ||
                   item.description == "AncSvcsCharge" ||
                   item.description == "OtcaSysCurr" ||
                   item.description == "Otca3SysCurr" ||
@@ -169,8 +198,7 @@ class BillingCalculator {
                   item.description == "MetRetCharge" ||
                   item.description == "MetSysCharge" ||
                   item.description == "PAR" ||
-                  item.description == "RFSC" ||
-                  item.description == "VATDist",
+                  item.description == "RFSC",
             )
             .toList();
     final distributionSubtotal = distributionItems.fold(
@@ -187,7 +215,12 @@ class BillingCalculator {
                   item.description == "OlraCurr" ||
                   item.description == "Olra3Curr" ||
                   item.description == "SrSub" ||
-                  item.description == "SrDisc",
+                  item.description == "SrDisc" ||
+                  item.description == "QCAmount" ||
+                  item.description == "EPAmount" ||
+                  item.description == "PCAmount" ||
+                  item.description == "BCAmount" ||
+                  item.description == "TSFRental",
             )
             .toList();
     final otherSubtotal = otherItems.fold(
@@ -195,7 +228,102 @@ class BillingCalculator {
       (sum, item) => sum + item.amount,
     );
 
-    final total = items.fold(0.0, (sum, item) => sum + item.amount);
+    final vatItems =
+        items
+            .where(
+              (item) =>
+                  item.description == "Rpt" ||
+                  item.description == "Ftx" ||
+                  item.description == "VATDist" ||
+                  item.description == "VATOther",
+            )
+            .toList();
+    final vatSubtotal = vatItems.fold(0.0, (sum, item) => sum + item.amount);
+
+    final govtItems =
+        items
+            .where(
+              (item) =>
+                  item.description == "UC-ME-SPUG" ||
+                  item.description == "UC-REDCI" ||
+                  item.description == "NPC-SD" ||
+                  item.description == "GEAAllow" ||
+                  item.description == "FITAllow" ||
+                  item.description == "EnvCharge",
+            )
+            .toList();
+    final govtSubtotal = govtItems.fold(0.0, (sum, item) => sum + item.amount);
+
+    final vatSaleItems =
+        items
+            .where(
+              (item) =>
+                  item.description == "DistDemCharge" ||
+                  item.description == "DistSysCharge" ||
+                  item.description == "SupRetCharge" ||
+                  item.description == "SupSysCharge" ||
+                  item.description == "MetRetCharge" ||
+                  item.description == "MetSysCharge" ||
+                  item.description == "PAR" ||
+                  item.description == "RFSC" ||
+                  item.description == "Lifeline" ||
+                  item.description == "SrSub",
+            )
+            .toList();
+    final vatSaleSubtotal = vatSaleItems.fold(
+      0.0,
+      (sum, item) => sum + item.amount,
+    );
+
+    final vatZeroItems =
+        items
+            .where(
+              (item) =>
+                  item.description == "GenSys" ||
+                  item.description == "Psalm" ||
+                  item.description == "Oga" ||
+                  item.description == "OgaCurr" ||
+                  item.description == "Oga3Curr" ||
+                  item.description == "TransSysCharge" ||
+                  item.description == "TransDemCharge" ||
+                  item.description == "SysLoss" ||
+                  item.description == "OtcaDem" ||
+                  item.description == "OtcaDemCurr" ||
+                  item.description == "OtcaDem3Curr" ||
+                  item.description == "VATGen" ||
+                  item.description == "VATTrans" ||
+                  item.description == "VATSL" ||
+                  item.description == "AncSvcsCharge" ||
+                  item.description == "OtcaSysCurr" ||
+                  item.description == "Otca3SysCurr" ||
+                  item.description == "Osla" ||
+                  item.description == "OslaCurr" ||
+                  item.description == "Osla3Curr" ||
+                  item.description == "Olra" ||
+                  item.description == "OlraCurr" ||
+                  item.description == "Olra3Curr" ||
+                  item.description == "Osra" ||
+                  item.description == "Ftx" ||
+                  item.description == "Rpt" ||
+                  item.description == "QCAmount" ||
+                  item.description == "EPAmount" ||
+                  item.description == "PCAmount" ||
+                  item.description == "BCAmount" ||
+                  item.description == "SrDisc",
+            )
+            .toList();
+    final vatZeroSubtotal = vatZeroItems.fold(
+      0.0,
+      (sum, item) => sum + item.amount,
+    );
+
+    final totalAmount =
+        generationSubtotal +
+        transmissionSubtotal +
+        distributionSubtotal +
+        otherSubtotal +
+        vatSubtotal +
+        govtSubtotal;
 
     return BillSummary(
       reading: reading,
@@ -210,7 +338,15 @@ class BillingCalculator {
       distributionSubtotal: distributionSubtotal,
       otherItems: otherItems,
       otherSubtotal: otherSubtotal,
-      totalAmount: total,
+      vatItems: vatItems,
+      vatSubtotal: vatSubtotal,
+      govtItems: govtItems,
+      govtSubtotal: govtSubtotal,
+      vatSaleItems: vatSaleItems,
+      vatSaleSubtotal: vatSaleSubtotal,
+      vatZeroItems: vatZeroItems,
+      vatZeroSubtotal: vatZeroSubtotal,
+      totalAmount: totalAmount,
     );
   }
 }

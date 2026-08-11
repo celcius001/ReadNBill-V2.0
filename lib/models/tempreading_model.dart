@@ -22,7 +22,7 @@ class TempModel {
   final String? sdiscountStatus;
   final double kwhConsumption;
   final double qcAmount;
-  final double pcamount;
+  final double pcAmount;
   final double epAmount;
   final double bcAmount;
   final double arrAmount;
@@ -51,7 +51,7 @@ class TempModel {
     required this.sdiscountStatus,
     required this.kwhConsumption,
     required this.qcAmount,
-    required this.pcamount,
+    required this.pcAmount,
     required this.epAmount,
     required this.bcAmount,
     required this.arrAmount,
@@ -95,7 +95,7 @@ class TempModel {
 
       kwhConsumption: (json['KWHConsumption'] as num?)?.toDouble() ?? 0.0,
       qcAmount: (json['QCAmount'] as num?)?.toDouble() ?? 0.0,
-      pcamount: (json['PCAmount'] as num?)?.toDouble() ?? 0.0,
+      pcAmount: (json['PCAmount'] as num?)?.toDouble() ?? 0.0,
       epAmount: (json['EPAmount'] as num?)?.toDouble() ?? 0.0,
       bcAmount: (json['BCAmount'] as num?)?.toDouble() ?? 0.0,
       arrAmount: (json['ArrAmount'] as num?)?.toDouble() ?? 0.0,
@@ -140,7 +140,7 @@ class TempModel {
 
       kwhConsumption: (map['KWHConsumption'] as num?)?.toDouble() ?? 0.0,
       qcAmount: (map['QCAmount'] as num?)?.toDouble() ?? 0.0,
-      pcamount: (map['PCAmount'] as num?)?.toDouble() ?? 0.0,
+      pcAmount: (map['PCAmount'] as num?)?.toDouble() ?? 0.0,
       epAmount: (map['EPAmount'] as num?)?.toDouble() ?? 0.0,
       bcAmount: (map['BCAmount'] as num?)?.toDouble() ?? 0.0,
       arrAmount: (map['ArrAmount'] as num?)?.toDouble() ?? 0.0,
@@ -172,7 +172,7 @@ class TempModel {
       'SDiscountStatus': sdiscountStatus,
       'KWHConsumption': kwhConsumption,
       'QCAmount': qcAmount,
-      'PCAmount': pcamount,
+      'PCAmount': pcAmount,
       'EPAmount': epAmount,
       'BCAmount': bcAmount,
       'ArrAmount': arrAmount,
