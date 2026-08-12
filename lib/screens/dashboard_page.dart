@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:readnbill/database/database_helper.dart';
+import 'package:readnbill/models/route_model.dart';
 import 'package:readnbill/models/tempreading_model.dart';
 import 'package:readnbill/screens/transaction_page.dart';
 
 class DashboardPage extends StatefulWidget {
-  final String? routeNo;
+  final RouteModel? route;
 
-  const DashboardPage({super.key, required this.routeNo});
+  const DashboardPage({super.key, required this.route});
   @override
   State<DashboardPage> createState() => _DashboardPageState();
 }
@@ -25,7 +26,7 @@ class _DashboardPageState extends State<DashboardPage> {
 
   Future<void> _loadReadings() async {
     final data = await DatabaseHelper.instance.getReadingsByRoute(
-      widget.routeNo!,
+      widget.route!.routeCode,
     );
 
     setState(() {
@@ -126,7 +127,10 @@ class _DashboardPageState extends State<DashboardPage> {
                         context,
                         MaterialPageRoute(
                           builder:
-                              (context) => TransactionPage(reading: reading),
+                              (context) => TransactionPage(
+                                reading: reading,
+                                route: widget.route!,
+                              ),
                         ),
                       );
                     },

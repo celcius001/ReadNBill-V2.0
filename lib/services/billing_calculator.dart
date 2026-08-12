@@ -1,11 +1,13 @@
 import 'package:readnbill/models/bill_summary.dart';
 import 'package:readnbill/models/rate_model.dart';
+import 'package:readnbill/models/route_model.dart';
 import 'package:readnbill/models/tempreading_model.dart';
 import 'package:readnbill/services/bill_items.dart';
 
 class BillingCalculator {
   static BillSummary generateBill({
     required RateModel rate,
+    required RouteModel route,
     required TempModel reading,
     required double previousReading,
     required double presentReading,
@@ -327,6 +329,7 @@ class BillingCalculator {
 
     return BillSummary(
       reading: reading,
+      route: route,
       presentReading: presentReading,
       usedKwh: usedKwh,
       items: items,

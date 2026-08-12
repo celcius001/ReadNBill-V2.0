@@ -4,7 +4,7 @@ import 'package:readnbill/models/route_model.dart';
 import 'package:readnbill/services/api_service.dart';
 
 class RoutePage extends StatefulWidget {
-  final ValueChanged<String> onRouteSelected;
+  final ValueChanged<RouteModel> onRouteSelected;
   const RoutePage({super.key, required this.onRouteSelected});
   @override
   State<RoutePage> createState() => _RoutePageState();
@@ -234,7 +234,7 @@ class _RoutePageState extends State<RoutePage> {
                       trailing: const Icon(Icons.arrow_forward_ios),
                       onTap: () {
                         // Navigate to route details page
-                        widget.onRouteSelected(route.routeCode);
+                        widget.onRouteSelected(route);
                       },
                       onLongPress: () {
                         _confirmDelete(route.routeCode);

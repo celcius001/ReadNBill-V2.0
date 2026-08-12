@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:readnbill/models/route_model.dart';
 import 'package:readnbill/screens/dashboard_page.dart';
 import 'package:readnbill/screens/printer_settings_page.dart';
 import 'package:readnbill/screens/report_page.dart';
@@ -12,7 +13,7 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   int _selectedIndex = 0;
-  String? _selectedRoute;
+  RouteModel? _selectedRoute;
 
   @override
   Widget build(BuildContext context) {
@@ -20,14 +21,14 @@ class _HomePageState extends State<HomePage> {
 
     switch (_selectedIndex) {
       case 0:
-        currentScreen = DashboardPage(routeNo: _selectedRoute);
+        currentScreen = DashboardPage(route: _selectedRoute);
         break;
 
       case 1:
         currentScreen = RoutePage(
-          onRouteSelected: (routeNo) {
+          onRouteSelected: (route) {
             setState(() {
-              _selectedRoute = routeNo;
+              _selectedRoute = route;
               _selectedIndex = 0; // Go back to Dashboard
             });
           },
@@ -39,7 +40,7 @@ class _HomePageState extends State<HomePage> {
         break;
 
       default:
-        currentScreen = DashboardPage(routeNo: _selectedRoute);
+        currentScreen = DashboardPage(route: _selectedRoute);
     }
 
     return Scaffold(

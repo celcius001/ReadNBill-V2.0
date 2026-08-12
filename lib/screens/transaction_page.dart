@@ -1,13 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:readnbill/database/database_helper.dart';
+import 'package:readnbill/models/route_model.dart';
 import 'package:readnbill/models/tempreading_model.dart';
 import 'package:readnbill/services/billing_calculator.dart';
 import 'package:readnbill/services/printer_service.dart';
 
 class TransactionPage extends StatefulWidget {
   final TempModel reading;
+  final RouteModel route;
 
-  const TransactionPage({super.key, required this.reading});
+  const TransactionPage({
+    super.key,
+    required this.reading,
+    required this.route,
+  });
   @override
   State<TransactionPage> createState() => _TransactionPageState();
 }
@@ -78,6 +84,7 @@ class _TransactionPageState extends State<TransactionPage> {
     final billSummary = BillingCalculator.generateBill(
       rate: rate,
       reading: widget.reading,
+      route: widget.route,
       previousReading: widget.reading.previousReading,
       presentReading:
           presentReadingController.text.isNotEmpty
@@ -111,6 +118,16 @@ class _TransactionPageState extends State<TransactionPage> {
         kwhUsed = 0.0;
       }
     });
+  }
+
+  DateTime getDueDate() {
+    final servicePeriod = DateTime.parse(widget.reading.servicePeriodEnd);
+
+    return DateTime(
+      servicePeriod.year,
+      servicePeriod.month + 1,
+      widget.route.dueDay,
+    );
   }
 
   @override

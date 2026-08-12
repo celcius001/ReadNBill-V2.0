@@ -1,8 +1,10 @@
+import 'package:readnbill/models/route_model.dart';
 import 'package:readnbill/models/tempreading_model.dart';
 import 'package:readnbill/services/bill_items.dart';
 
 class BillSummary {
   final TempModel reading;
+  final RouteModel route;
   final double presentReading;
   final double usedKwh;
   final List<BillItem> items;
@@ -27,6 +29,7 @@ class BillSummary {
 
   const BillSummary({
     required this.reading,
+    required this.route,
     required this.presentReading,
     required this.usedKwh,
     required this.items,
