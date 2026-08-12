@@ -12,7 +12,9 @@ class BillingCalculator {
     required double previousReading,
     required double presentReading,
   }) {
-    final usedKwh = (presentReading - previousReading);
+    final usedKwh =
+        (presentReading - previousReading) +
+        (reading.additionalKWH + reading.coreloss) * reading.multiplier;
 
     final items = <BillItem>[];
 
@@ -22,11 +24,15 @@ class BillingCalculator {
     void addCharge(String description, double? rateValue, double quantity) {
       if (rateValue == null || rateValue <= 0) return;
 
+      final amount = rateValue * quantity;
+
+      final roundedAmount = double.parse(amount.toStringAsFixed(2));
+
       items.add(
         BillItem(
           description: description,
           rate: rateValue,
-          amount: rateValue * quantity,
+          amount: roundedAmount,
         ),
       );
     }
@@ -48,11 +54,16 @@ class BillingCalculator {
       }
     }
 
+    double round2(double value) {
+      return double.parse(value.toStringAsFixed(2));
+    }
+
+    final dcc = round2(rate.distribDemCharge ?? 0.0);
+    final srcc = round2(rate.supplyRetCusCharge);
+    final mrcc = round2(rate.metRetCusCharge);
+
     final vatDistAmount =
-        ((usedKwh * rate.vatDist) +
-            (rate.distribDemCharge ??
-                    0.0 + rate.supplyRetCusCharge + rate.metRetCusCharge) *
-                0.12);
+        ((usedKwh * rate.vatDist) + (dcc + srcc + mrcc) * 0.12);
 
     final vatOtherAmount =
         ((usedKwh * rate.vatOthers) + (reading.tsfRental * 0.12));
