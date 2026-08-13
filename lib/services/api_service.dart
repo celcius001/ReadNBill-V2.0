@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
+import 'package:readnbill/models/bill_model.dart';
 import 'package:readnbill/models/rate_model.dart';
 import 'package:readnbill/models/route_model.dart';
 import 'package:readnbill/models/tempreading_model.dart';
@@ -52,5 +53,19 @@ class ApiService {
     }
 
     throw Exception("Failed to download route.");
+  }
+
+  Future<void> uploadBills(List<BillModel> bills) async {
+    final uri = Uri.parse("$baseUrl/bill/upload");
+
+    final response = await http.post(
+      uri,
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'bills': bills.map((bill) => bill.toJson()).toList()}),
+    );
+
+    if (response.statusCode != 200 && response.statusCode != 201) {
+      throw Exception("Failed to upload bills: ${response.statusCode}");
+    }
   }
 }

@@ -166,7 +166,7 @@ class _TransactionPageState extends State<TransactionPage> {
       await DatabaseHelper.instance.insertBill(billModel);
 
       // ---- Print the bill ----
-      // await PrinterService.instance.printBill(billSummary);
+      await PrinterService.instance.printBill(billSummary);
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(

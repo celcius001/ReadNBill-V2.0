@@ -264,7 +264,12 @@ class DatabaseHelper {
   Future<int> insertBill(BillModel bill) async {
     final db = await database;
     final map = bill.toMap();
+
     map.remove('id'); // never pass an explicit id on insert
+
+    // New bill needs to be uploaded
+    map['is_uploaded'] = 0;
+
     return await db.insert(
       tableBills,
       map,
@@ -328,6 +333,23 @@ class DatabaseHelper {
       where: 'id = ?',
       whereArgs: [id],
     );
+  }
+
+  Future<void> markBillsAsUploaded(List<int> ids) async {
+    final db = await database;
+
+    final batch = db.batch();
+
+    for (final id in ids) {
+      batch.update(
+        'bills',
+        {'is_uploaded': 1},
+        where: 'id = ?',
+        whereArgs: [id],
+      );
+    }
+
+    await batch.commit(noResult: true);
   }
 
   Future<int> deleteBill(int id) async {

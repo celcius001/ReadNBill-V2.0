@@ -523,12 +523,44 @@ class BillModel {
     };
   }
 
+  String? formatSqlDate(DateTime? date) {
+    if (date == null) return null;
+
+    return "${date.year.toString().padLeft(4, '0')}-"
+        "${date.month.toString().padLeft(2, '0')}-"
+        "${date.day.toString().padLeft(2, '0')}";
+  }
+
+  String? formatSqlDateTime(DateTime? date) {
+    if (date == null) return null;
+
+    return "${date.year.toString().padLeft(4, '0')}-"
+        "${date.month.toString().padLeft(2, '0')}-"
+        "${date.day.toString().padLeft(2, '0')} "
+        "${date.hour.toString().padLeft(2, '0')}:"
+        "${date.minute.toString().padLeft(2, '0')}:"
+        "${date.second.toString().padLeft(2, '0')}";
+  }
+
   /// Map used specifically for uploading to the API — excludes the
   /// SQLite-only id/is_uploaded fields.
   Map<String, dynamic> toJson() {
     final map = toMap();
+
+    // Don't upload SQLite-only fields
     map.remove('id');
     map.remove('is_uploaded');
+
+    // SQL DATE
+    map['ServicePeriodEnd'] = servicePeriodEnd;
+
+    map['ServiceDateFrom'] = formatSqlDate(serviceDateFrom);
+    map['ServiceDateTo'] = formatSqlDate(serviceDateTo);
+    map['DueDate'] = formatSqlDate(dueDate);
+
+    // SQL DATETIME
+    map['BillingDate'] = formatSqlDateTime(billingDate);
+    map['ORDate'] = formatSqlDateTime(orDate);
     return map;
   }
 }

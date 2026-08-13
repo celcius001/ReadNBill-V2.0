@@ -178,4 +178,11 @@ class TempModel {
       'ArrAmount': arrAmount,
     };
   }
+
+  /// Map used specifically for uploading to the API — excludes the
+  /// SQLite-only id/is_uploaded fields.
+  Map<String, dynamic> toJson() {
+    final map = toMap();
+    return map;
+  }
 }
