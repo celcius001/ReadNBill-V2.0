@@ -1,4 +1,5 @@
 import 'package:path/path.dart';
+import 'package:readnbill/models/bill_model.dart';
 import 'package:readnbill/models/rate_model.dart';
 import 'package:readnbill/models/route_model.dart';
 import 'package:readnbill/models/tempreading_model.dart';
@@ -8,6 +9,10 @@ class DatabaseHelper {
   static final DatabaseHelper instance = DatabaseHelper._init();
 
   static Database? _database;
+  static const String tableRoutes = 'routes';
+  static const String tableTempReadings = 'temp_readings';
+  static const String tableRates = 'rates';
+  static const String tableBills = 'bills';
 
   DatabaseHelper._init();
 
@@ -27,7 +32,7 @@ class DatabaseHelper {
 
   Future _createDB(Database db, int version) async {
     await db.execute('''
-      CREATE TABLE routes(
+      CREATE TABLE ${tableRoutes}(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         RouteCode TEXT NOT NULL,
         TownCode TEXT NOT NULL,
@@ -42,7 +47,7 @@ class DatabaseHelper {
 
     // TempReadings table
     await db.execute('''
-      CREATE TABLE temp_readings(
+      CREATE TABLE ${tableTempReadings}(
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         ServicePeriodEnd TEXT,
         AccountNumber TEXT UNIQUE,
@@ -85,7 +90,7 @@ class DatabaseHelper {
 
     // Rates table
     await db.execute('''
-      CREATE TABLE rates (
+      CREATE TABLE ${tableRates} (
         ConsumerType TEXT NOT NULL,
         ServicePeriodEnd TEXT NOT NULL,
         LifelineLevel REAL,
@@ -143,7 +148,194 @@ class DatabaseHelper {
         PRIMARY KEY (ConsumerType, ServicePeriodEnd)
       )
     ''');
+
+    // Bills Table
+    await db.execute('''
+      CREATE TABLE ${tableBills} (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        ServicePeriodEnd TEXT,
+        AccountNumber TEXT UNIQUE,
+        PowerPreviousReading REAL,
+        PowerPresentReading REAL,
+        DemandPreviousReading REAL,
+        DemandPresentReading REAL,
+        AdditionalKWH REAL,
+        AdditionalKWDemand REAL,
+        PowerKWH REAL,
+        KWHAmount REAL,
+        DemandKW REAL,
+        KWAmount REAL,
+        Charges REAL,
+        Deductions REAL,
+        NetAmount REAL,
+        PowerRate REAL,
+        DemandRate REAL,
+        BillingDate TEXT,
+        ServiceDateFrom TEXT,
+        ServiceDateTo TEXT,
+        DueDate TEXT,
+        BillNumber TEXT,
+        Remarks TEXT,
+        AverageKWH REAL,
+        AverageKWDemand REAL,
+        CoreLoss REAL,
+        Meter TEXT,
+        PR TEXT,
+        SDW TEXT,
+        Others TEXT,
+        PPA REAL,
+        PPAAmount REAL,
+        BasicAmount REAL,
+        PRADiscount REAL,
+        PRAAmount REAL,
+        FPPCA REAL,
+        FPPCAAmount REAL,
+        UCAmount REAL,
+        UCAmountEC REAL,
+        MeterNumber TEXT,
+        ConsumerType TEXT,
+        BillType TEXT,
+        QCAmount REAL,
+        EPAmount REAL,
+        PCAmount REAL,
+        WACAmount REAL,
+        LCAmount REAL,
+        BillingPeriod TEXT,
+        KeyForSelection TEXT,
+        ORNumber TEXT,
+        ORDate TEXT,
+        GenSysAmt REAL,
+        FBHCAmt REAL,
+        FPCAAdjAmt REAL,
+        ICERAAmt REAL,
+        TransDemAmt REAL,
+        TransSysAmt REAL,
+        SysLossAmt REAL,
+        DistribDemAmt REAL,
+        DistribSysAmt REAL,
+        SupRetCusAmt REAL,
+        SupSysAmt REAL,
+        MetRetCusAmt REAL,
+        MetSysAmt REAL,
+        ICCSAmt REAL,
+        LifelineSubsidyAmt REAL,
+        UnbundledTag TEXT,
+        DefAcctgAdjAmt REAL,
+        VATGenAmt REAL,
+        VATTransAmt REAL,
+        VATSLAmt REAL,
+        VATDistAmt REAL,
+        VATOthersAmt REAL,
+        SeniorCitizenAmt REAL,
+        SeniorCitizenSubsidy REAL,
+        StrandedCostAmt REAL,
+        BCAmount REAL,
+        FITAllAmt REAL,
+        OGAAmt REAL,
+        OTCADemAmt REAL,
+        OTCASysAmt REAL,
+        OSLAAmt REAL,
+        OLRAAmt REAL,
+        NPCSD REAL,
+        MEREDCI REAL,
+        OGACurr REAL,
+        OTCASysCurr REAL,
+        OTCADemCurr REAL,
+        OSLACurr REAL,
+        OLRACurr REAL,
+        OSrRA REAL,
+        OGA3 REAL,
+        OTCASys3 REAL,
+        OTCADem3 REAL,
+        OSLA3 REAL,
+        OLRA3 REAL,
+        FranchiseTax REAL,
+        rowguid TEXT,
+        is_uploaded INTEGER NOT NULL DEFAULT 0
+      )
+    ''');
   }
+
+  // ---------------------------------------------------------------------
+  // CRUD helpers — all typed against BillModel
+  // ---------------------------------------------------------------------
+
+  /// Inserts a bill. Leave `bill.id` null so SQLite auto-increments it.
+  Future<int> insertBill(BillModel bill) async {
+    final db = await database;
+    final map = bill.toMap();
+    map.remove('id'); // never pass an explicit id on insert
+    return await db.insert(
+      tableBills,
+      map,
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  /// Insert many bills at once inside a single transaction (fast bulk import).
+  Future<void> insertBills(List<BillModel> bills) async {
+    final db = await database;
+    final batch = db.batch();
+    for (final bill in bills) {
+      final map = bill.toMap();
+      map.remove('id');
+      batch.insert(
+        tableBills,
+        map,
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    }
+    await batch.commit(noResult: true);
+  }
+
+  Future<List<BillModel>> getAllBills() async {
+    final db = await database;
+    final rows = await db.query(tableBills);
+    return rows.map((row) => BillModel.fromMap(row)).toList();
+  }
+
+  Future<List<BillModel>> getPendingBills() async {
+    final db = await database;
+    final rows = await db.query(
+      tableBills,
+      where: 'is_uploaded = ?',
+      whereArgs: [0],
+    );
+    return rows.map((row) => BillModel.fromMap(row)).toList();
+  }
+
+  Future<int> countAllBills() async {
+    final db = await database;
+    final result = await db.rawQuery(
+      'SELECT COUNT(*) AS count FROM $tableBills',
+    );
+    return Sqflite.firstIntValue(result) ?? 0;
+  }
+
+  Future<int> countPendingBills() async {
+    final db = await database;
+    final result = await db.rawQuery(
+      'SELECT COUNT(*) AS count FROM $tableBills WHERE is_uploaded = 0',
+    );
+    return Sqflite.firstIntValue(result) ?? 0;
+  }
+
+  Future<int> markBillUploaded(int id) async {
+    final db = await database;
+    return await db.update(
+      tableBills,
+      {'is_uploaded': 1},
+      where: 'id = ?',
+      whereArgs: [id],
+    );
+  }
+
+  Future<int> deleteBill(int id) async {
+    final db = await database;
+    return await db.delete(tableBills, where: 'id = ?', whereArgs: [id]);
+  }
+
+  // ---------------------------------------------------------------------
 
   Future<List<RouteModel>> getRoutes() async {
     final db = await database;
@@ -298,5 +490,10 @@ class DatabaseHelper {
     if (routeCount == 0) {
       await db.delete('rates');
     }
+  }
+
+  Future<void> close() async {
+    final db = await database;
+    db.close();
   }
 }

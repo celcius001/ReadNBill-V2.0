@@ -50,7 +50,8 @@ class BillingCalculator {
       if (usedKwh < 100) {
         seniorCitizenDiscount = -(((a * usedKwh) + b) * 0.05);
       } else {
-        -(((a * usedKwh) + rate.metRetCusCharge) * 0.05);
+        seniorCitizenDiscount =
+            -(((a * usedKwh) + rate.metRetCusCharge) * 0.05);
       }
     }
 
@@ -126,7 +127,7 @@ class BillingCalculator {
         BillItem(
           description: "VATDist",
           rate: rate.vatDist,
-          amount: vatDistAmount,
+          amount: round2(vatDistAmount),
         ),
       );
     }
@@ -135,7 +136,7 @@ class BillingCalculator {
         BillItem(
           description: "VATOther",
           rate: rate.vatOthers,
-          amount: vatOtherAmount,
+          amount: round2(vatOtherAmount),
         ),
       );
     }

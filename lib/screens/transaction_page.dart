@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:readnbill/database/database_helper.dart';
+import 'package:readnbill/models/bill_model.dart';
+import 'package:readnbill/models/bill_summary.dart';
 import 'package:readnbill/models/route_model.dart';
 import 'package:readnbill/models/tempreading_model.dart';
 import 'package:readnbill/services/billing_calculator.dart';
@@ -80,20 +82,91 @@ class _TransactionPageState extends State<TransactionPage> {
       return;
     }
 
+    if (presentReadingController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter the present reading.')),
+      );
+      return;
+    }
+
+    final presentReading = double.parse(presentReadingController.text);
+
     // Calculate the bill based on the rates and kWh used
     final billSummary = BillingCalculator.generateBill(
       rate: rate,
       reading: widget.reading,
       route: widget.route,
       previousReading: widget.reading.previousReading,
-      presentReading:
-          presentReadingController.text.isNotEmpty
-              ? double.parse(presentReadingController.text)
-              : widget.reading.previousReading,
+      presentReading: presentReading,
     );
+
+    /// Route.dueDay is a day-of-month (e.g. 15). Roll to next month if that
+    /// day has already passed this month.
+    DateTime _computeDueDate(int dueDay, DateTime from) {
+      var due = DateTime(from.year, from.month, dueDay);
+      if (due.isBefore(from)) {
+        due = DateTime(from.year, from.month + 1, dueDay);
+      }
+      return due;
+    }
+
+    BillModel _buildBillModel(
+      BillSummary summary,
+      TempModel reading,
+      RouteModel route,
+    ) {
+      final now = DateTime.now();
+      final dueDate = _computeDueDate(route.dueDay, now);
+
+      return BillModel(
+        accountNumber: reading.accountNumber,
+        meterNumber: reading.meterNumber,
+        consumerType: reading.consumerType,
+
+        powerPreviousReading: reading.previousReading,
+        powerPresentReading: summary.presentReading,
+        powerKWH: summary.usedKwh,
+        additionalKWH: reading.additionalKWH,
+        coreLoss: reading.coreloss,
+
+        // Fixed charges carried straight from the reading record
+        qcAmount: reading.qcAmount,
+        pcAmount: reading.pcAmount,
+        epAmount: reading.epAmount,
+        bcAmount: reading.bcAmount,
+
+        // Category subtotals from the generated bill
+        genSysAmt: summary.generationSubtotal,
+        transSysAmt: summary.transmissionSubtotal,
+        distribSysAmt: summary.distributionSubtotal,
+        // BillModel has separate VAT buckets (Gen/Trans/SL/Dist/Others) but
+        // BillSummary only produces one combined vatSubtotal — putting the
+        // whole thing under vatOthersAmt for now. Let me know if you want it
+        // split by category instead.
+        vatOthersAmt: summary.vatSubtotal,
+        franchiseTax: summary.govtSubtotal,
+
+        basicAmount: summary.otherSubtotal,
+        netAmount: summary.totalAmount,
+
+        servicePeriodEnd: reading.servicePeriodEnd,
+        billingDate: now,
+        dueDate: dueDate,
+      );
+    }
+
     try {
-      // Print the bill
-      await PrinterService.instance.printBill(billSummary);
+      final billModel = _buildBillModel(
+        billSummary,
+        widget.reading,
+        widget.route,
+      );
+
+      // ---- Insert into SQLite ----
+      await DatabaseHelper.instance.insertBill(billModel);
+
+      // ---- Print the bill ----
+      // await PrinterService.instance.printBill(billSummary);
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -223,9 +296,3 @@ Widget _infoRow(String label, String value) {
     ),
   );
 }
-
-// class BillingCalculator {
-//   static double generationChange(RateModel rate, double kwhUsed) {
-//     return rate.genSysCharge * kwhUsed;
-//   }
-// }

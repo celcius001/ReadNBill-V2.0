@@ -133,6 +133,10 @@ class _DashboardPageState extends State<DashboardPage> {
                               ),
                         ),
                       );
+                      // Runs once we're back on the dashboard — re-query so
+                      // this list (and any reading re-opened) reflects the
+                      // bill that was just generated.
+                      _loadReadings();
                     },
                   ),
                 );
