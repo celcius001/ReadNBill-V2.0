@@ -19,4 +19,20 @@ class UploadService {
       ids.whereType<int>().toList(),
     );
   }
+
+  Future<void> uploadPendingTempReadings() async {
+    final tempReadings = await DatabaseHelper.instance.getPendingTempReadings();
+
+    if (tempReadings.isEmpty) {
+      return;
+    }
+
+    await api.uploadTempReadings(tempReadings);
+
+    final ids = tempReadings.map((tempReading) => tempReading.id).toList();
+
+    await DatabaseHelper.instance.markBillsAsUploaded(
+      ids.whereType<int>().toList(),
+    );
+  }
 }

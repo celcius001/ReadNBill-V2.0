@@ -1,4 +1,8 @@
 class TempModel {
+  // ---- SQLite-only fields (not part of the API payload) ----
+  final int? id;
+  final bool isUploaded;
+
   final String servicePeriodEnd;
   final String accountNumber;
   final String route;
@@ -28,6 +32,8 @@ class TempModel {
   final double arrAmount;
 
   TempModel({
+    this.id,
+    this.isUploaded = false,
     required this.servicePeriodEnd,
     required this.accountNumber,
     required this.route,
@@ -105,6 +111,8 @@ class TempModel {
   // Used by SQLite
   factory TempModel.fromMap(Map<String, dynamic> map) {
     return TempModel(
+      id: map['id'] as int?,
+      isUploaded: (map['is_uploaded'] as int?) == 1,
       servicePeriodEnd: map['ServicePeriodEnd']?.toString() ?? '',
       accountNumber: map['AccountNumber']?.toString() ?? '',
       route: map['Route']?.toString() ?? '',
@@ -149,6 +157,10 @@ class TempModel {
 
   Map<String, dynamic> toMap() {
     return {
+      // Don't set 'id' when inserting a new row — leave it out so SQLite
+      // auto-increments. It's included here so updates/copies can carry it.
+      if (id != null) 'id': id,
+      'is_uploaded': isUploaded ? 1 : 0,
       'ServicePeriodEnd': servicePeriodEnd,
       'AccountNumber': accountNumber,
       'Route': route,
@@ -179,10 +191,40 @@ class TempModel {
     };
   }
 
+  String? formatSqlDate(DateTime? date) {
+    if (date == null) return null;
+
+    return "${date.year.toString().padLeft(4, '0')}-"
+        "${date.month.toString().padLeft(2, '0')}-"
+        "${date.day.toString().padLeft(2, '0')}";
+  }
+
+  String? formatSqlDateTime(DateTime? date) {
+    if (date == null) return null;
+
+    return "${date.year.toString().padLeft(4, '0')}-"
+        "${date.month.toString().padLeft(2, '0')}-"
+        "${date.day.toString().padLeft(2, '0')} "
+        "${date.hour.toString().padLeft(2, '0')}:"
+        "${date.minute.toString().padLeft(2, '0')}:"
+        "${date.second.toString().padLeft(2, '0')}";
+  }
+
   /// Map used specifically for uploading to the API — excludes the
   /// SQLite-only id/is_uploaded fields.
   Map<String, dynamic> toJson() {
     final map = toMap();
+
+    // Don't upload SQLite-only fields
+    map.remove('id');
+    map.remove('is_uploaded');
+
+    // SQL DATE
+    map['ServicePeriodEnd'] = servicePeriodEnd;
+
+    // SQL DATETIME
+    map['ReadingDate'] = formatSqlDateTime(readingDate);
+
     return map;
   }
 }

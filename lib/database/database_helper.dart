@@ -84,7 +84,8 @@ class DatabaseHelper {
         PCAmount REAL,
         EPAmount REAL,
         ArrAmount REAL,
-        BCAmount REAL
+        BCAmount REAL,
+        is_uploaded INTEGER NOT NULL DEFAULT 0
       )
     ''');
 
@@ -277,22 +278,6 @@ class DatabaseHelper {
     );
   }
 
-  /// Insert many bills at once inside a single transaction (fast bulk import).
-  Future<void> insertBills(List<BillModel> bills) async {
-    final db = await database;
-    final batch = db.batch();
-    for (final bill in bills) {
-      final map = bill.toMap();
-      map.remove('id');
-      batch.insert(
-        tableBills,
-        map,
-        conflictAlgorithm: ConflictAlgorithm.replace,
-      );
-    }
-    await batch.commit(noResult: true);
-  }
-
   Future<List<BillModel>> getAllBills() async {
     final db = await database;
     final rows = await db.query(tableBills);
@@ -342,7 +327,7 @@ class DatabaseHelper {
 
     for (final id in ids) {
       batch.update(
-        'bills',
+        tableBills,
         {'is_uploaded': 1},
         where: 'id = ?',
         whereArgs: [id],
@@ -358,43 +343,15 @@ class DatabaseHelper {
   }
 
   // ---------------------------------------------------------------------
+  // CRUD helpers — all typed against RouteModel
+  // ---------------------------------------------------------------------
 
   Future<List<RouteModel>> getRoutes() async {
     final db = await database;
 
-    final result = await db.query('routes');
+    final result = await db.query(tableRoutes);
 
     return result.map<RouteModel>((row) => RouteModel.fromMap(row)).toList();
-  }
-
-  Future<List<TempModel>> getReadingsByRoute(String routeCode) async {
-    final db = await database;
-
-    final result = await db.query(
-      'temp_readings',
-      where: 'Route = ?',
-      whereArgs: [routeCode],
-      orderBy: 'SequenceNumber ASC',
-    );
-
-    return result.map<TempModel>((row) => TempModel.fromMap(row)).toList();
-  }
-
-  Future<RateModel?> getRate(String consumerType) async {
-    final db = await database;
-
-    final result = await db.query(
-      'rates',
-      where: 'ConsumerType = ?',
-      whereArgs: [consumerType],
-      limit: 1,
-    );
-
-    if (result.isNotEmpty) {
-      return RateModel.fromMap(result.first);
-    } else {
-      return null;
-    }
   }
 
   Future<void> saveRoute(
@@ -410,13 +367,13 @@ class DatabaseHelper {
     final db = await database;
 
     final existing = await db.query(
-      'routes',
+      tableRoutes,
       where: 'RouteCode = ?',
       whereArgs: [routeCode],
     );
 
     if (existing.isEmpty) {
-      await db.insert('routes', {
+      await db.insert(tableRoutes, {
         'RouteCode': routeCode,
         'TownCode': townCode,
         'Description': desc,
@@ -428,12 +385,29 @@ class DatabaseHelper {
       });
     } else {
       await db.update(
-        'routes',
+        tableRoutes,
         {'SequenceFrom': seqFrom, 'SequenceTo': seqTo},
         where: 'RouteCode = ?',
         whereArgs: [routeCode],
       );
     }
+  }
+
+  // ---------------------------------------------------------------------
+  // CRUD helpers — all typed against TempModel
+  // ---------------------------------------------------------------------
+
+  Future<List<TempModel>> getReadingsByRoute(String routeCode) async {
+    final db = await database;
+
+    final result = await db.query(
+      tableTempReadings,
+      where: 'Route = ?',
+      whereArgs: [routeCode],
+      orderBy: 'SequenceNumber ASC',
+    );
+
+    return result.map<TempModel>((row) => TempModel.fromMap(row)).toList();
   }
 
   Future<void> saveTempReadings(List<TempModel> readings) async {
@@ -442,9 +416,17 @@ class DatabaseHelper {
     final batch = db.batch();
 
     for (final reading in readings) {
+      final map = reading.toMap();
+
+      // New/updated reading needs to be uploaded
+      map['is_uploaded'] = 0;
+
+      // Don't insert SQLite ID
+      map.remove('id');
+
       batch.insert(
-        'temp_readings',
-        reading.toMap(),
+        tableTempReadings,
+        map,
         conflictAlgorithm: ConflictAlgorithm.replace,
       );
     }
@@ -452,16 +434,27 @@ class DatabaseHelper {
     await batch.commit(noResult: true);
   }
 
-  Future<void> saveRates(List<RateModel> rates) async {
+  Future<List<TempModel>> getPendingTempReadings() async {
+    final db = await database;
+    final rows = await db.query(
+      tableTempReadings,
+      where: 'is_uploaded = ?',
+      whereArgs: [0],
+    );
+    return rows.map((row) => TempModel.fromMap(row)).toList();
+  }
+
+  Future<void> markTempReadingsAsUploaded(List<int> ids) async {
     final db = await database;
 
     final batch = db.batch();
 
-    for (final rate in rates) {
-      batch.insert(
-        'rates',
-        rate.toMap(),
-        conflictAlgorithm: ConflictAlgorithm.replace,
+    for (final id in ids) {
+      batch.update(
+        tableTempReadings,
+        {'is_uploaded': 1},
+        where: 'id = ?',
+        whereArgs: [id],
       );
     }
 
@@ -475,12 +468,51 @@ class DatabaseHelper {
     final db = await database;
 
     return db.update(
-      'temp_readings',
+      tableTempReadings,
       values,
       where: 'AccountNumber = ?',
       whereArgs: [accountNumber],
     );
   }
+
+  // ---------------------------------------------------------------------
+  // CRUD helpers — all typed against RateModel
+  // ---------------------------------------------------------------------
+
+  Future<RateModel?> getRate(String consumerType) async {
+    final db = await database;
+
+    final result = await db.query(
+      tableRates,
+      where: 'ConsumerType = ?',
+      whereArgs: [consumerType],
+      limit: 1,
+    );
+
+    if (result.isNotEmpty) {
+      return RateModel.fromMap(result.first);
+    } else {
+      return null;
+    }
+  }
+
+  Future<void> saveRates(List<RateModel> rates) async {
+    final db = await database;
+
+    final batch = db.batch();
+
+    for (final rate in rates) {
+      batch.insert(
+        tableRates,
+        rate.toMap(),
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    }
+
+    await batch.commit(noResult: true);
+  }
+
+  // ---------------------------------------------------------------------
 
   Future<void> deleteRoute(String routeCode) async {
     final db = await database;
@@ -488,7 +520,7 @@ class DatabaseHelper {
     await db.transaction((txn) async {
       // Delete associated temp readings first
       await txn.delete(
-        'temp_readings',
+        tableTempReadings,
         where: 'Route = ?',
         whereArgs: [routeCode],
       );
@@ -518,4 +550,6 @@ class DatabaseHelper {
     final db = await database;
     db.close();
   }
+
+  // ---------------------------------------------------------------------
 }

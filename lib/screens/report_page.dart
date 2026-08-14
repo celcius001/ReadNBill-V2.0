@@ -13,7 +13,7 @@ class _ReportPageState extends State<ReportPage> {
 
   bool uploading = false;
 
-  Future<void> _uploadBills() async {
+  Future<void> _uploadAll() async {
     if (uploading) return;
 
     setState(() {
@@ -21,34 +21,60 @@ class _ReportPageState extends State<ReportPage> {
     });
 
     try {
-      // Get bills that haven't been uploaded yet
+      // Get pending data
       final bills = await DatabaseHelper.instance.getPendingBills();
 
-      if (bills.isEmpty) {
+      final readings = await DatabaseHelper.instance.getPendingTempReadings();
+
+      if (bills.isEmpty && readings.isEmpty) {
         if (!mounted) return;
 
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text("No bills to upload.")));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("No bills or readings to upload.")),
+        );
 
         return;
       }
 
-      // Upload all pending bills
-      await api.uploadBills(bills);
+      int uploadedBills = 0;
+      int uploadedReadings = 0;
 
-      // Mark them as uploaded
-      final ids = bills.map((bill) => bill.id).toList();
+      // -------------------------
+      // Upload Bills
+      // -------------------------
+      if (bills.isNotEmpty) {
+        await api.uploadBills(bills);
 
-      await DatabaseHelper.instance.markBillsAsUploaded(
-        ids.whereType<int>().toList(),
-      );
+        final billIds = bills.map((bill) => bill.id).whereType<int>().toList();
+
+        await DatabaseHelper.instance.markBillsAsUploaded(billIds);
+
+        uploadedBills = bills.length;
+      }
+
+      // -------------------------
+      // Upload Temp Readings
+      // -------------------------
+      if (readings.isNotEmpty) {
+        await api.uploadTempReadings(readings);
+
+        final readingIds =
+            readings.map((reading) => reading.id).whereType<int>().toList();
+
+        await DatabaseHelper.instance.markTempReadingsAsUploaded(readingIds);
+
+        uploadedReadings = readings.length;
+      }
 
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text("${bills.length} bill(s) uploaded successfully."),
+          content: Text(
+            "Upload successful: "
+            "$uploadedBills bill(s), "
+            "$uploadedReadings reading(s).",
+          ),
         ),
       );
     } catch (e) {
@@ -77,7 +103,7 @@ class _ReportPageState extends State<ReportPage> {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
-                onPressed: uploading ? null : _uploadBills,
+                onPressed: uploading ? null : _uploadAll,
                 icon:
                     uploading
                         ? const SizedBox(
@@ -86,7 +112,7 @@ class _ReportPageState extends State<ReportPage> {
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
                         : const Icon(Icons.cloud_upload),
-                label: Text(uploading ? "Uploading..." : "Upload Bills"),
+                label: Text(uploading ? "Uploading..." : "Upload All"),
               ),
             ),
           ],

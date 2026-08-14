@@ -68,4 +68,21 @@ class ApiService {
       throw Exception("Failed to upload bills: ${response.statusCode}");
     }
   }
+
+  Future<void> uploadTempReadings(List<TempModel> tempReadings) async {
+    final uri = Uri.parse("$baseUrl/temp/upload");
+
+    final response = await http.post(
+      uri,
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'tempReadings':
+            tempReadings.map((tempReading) => tempReading.toJson()).toList(),
+      }),
+    );
+
+    if (response.statusCode != 200 && response.statusCode != 201) {
+      throw Exception("Failed to upload bills: ${response.statusCode}");
+    }
+  }
 }
