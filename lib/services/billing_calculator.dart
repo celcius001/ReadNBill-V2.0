@@ -8,7 +8,7 @@ class BillingCalculator {
   static BillSummary generateBill({
     required RateModel rate,
     required RouteModel route,
-    required TempModel reading,
+    required TempReadingModel reading,
     required double previousReading,
     required double presentReading,
   }) {

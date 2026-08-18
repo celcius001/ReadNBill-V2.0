@@ -2,18 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:readnbill/database/database_helper.dart';
 import 'package:readnbill/models/bill_model.dart';
 import 'package:readnbill/models/bill_summary.dart';
+import 'package:readnbill/models/reading_model.dart';
 import 'package:readnbill/models/route_model.dart';
 import 'package:readnbill/models/tempreading_model.dart';
 import 'package:readnbill/services/billing_calculator.dart';
 import 'package:readnbill/services/printer_service.dart';
 
 class TransactionPage extends StatefulWidget {
-  final TempModel reading;
+  final TempReadingModel tempreading;
   final RouteModel route;
 
   const TransactionPage({
     super.key,
-    required this.reading,
+    required this.tempreading,
     required this.route,
   });
   @override
@@ -30,8 +31,8 @@ class _TransactionPageState extends State<TransactionPage> {
   void initState() {
     super.initState();
 
-    if (widget.reading.powerReading > 0) {
-      presentReadingController.text = widget.reading.powerReading
+    if (widget.tempreading.powerReading > 0) {
+      presentReadingController.text = widget.tempreading.powerReading
           .toStringAsFixed(0);
 
       _calculateUsed();
@@ -42,7 +43,7 @@ class _TransactionPageState extends State<TransactionPage> {
     final presentReading =
         double.tryParse(presentReadingController.text) ?? 0.0;
 
-    if (presentReading < widget.reading.previousReading) {
+    if (presentReading < widget.tempreading.previousReading) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
@@ -53,17 +54,42 @@ class _TransactionPageState extends State<TransactionPage> {
       return;
     }
 
-    await DatabaseHelper.instance.updateReading(
-      accountNumber: widget.reading.accountNumber,
-      values: {
-        'PowerReadings': presentReading,
-        'ReadingDate': DateTime.now().toIso8601String(),
-      },
-    );
+    try {
+      final now = DateTime.now();
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Reading saved successfully.')),
-    );
+      final reading = ReadingModel(
+        servicePeriodEnd: widget.tempreading.servicePeriodEnd,
+        accountNumber: widget.tempreading.accountNumber,
+        readingDate: now,
+        readBy: widget.tempreading.readBy,
+        powerReading: presentReading,
+        isUploaded: false,
+      );
+
+      // Update temp_readings
+      await DatabaseHelper.instance.updateTempReading(
+        accountNumber: widget.tempreading.accountNumber,
+        values: {
+          'PowerReadings': presentReading,
+          'ReadingDate': now.toIso8601String(),
+        },
+      );
+
+      // Insert if new, update if existing
+      await DatabaseHelper.instance.saveOrUpdateReading(reading);
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Reading saved successfully.')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Failed to save reading: $e')));
+    }
   }
 
   Future<void> _generateBill() async {
@@ -72,7 +98,7 @@ class _TransactionPageState extends State<TransactionPage> {
 
     // Get the rates from the database
     final rate = await DatabaseHelper.instance.getRate(
-      widget.reading.consumerType,
+      widget.tempreading.consumerType,
     );
 
     if (rate == null) {
@@ -94,9 +120,9 @@ class _TransactionPageState extends State<TransactionPage> {
     // Calculate the bill based on the rates and kWh used
     final billSummary = BillingCalculator.generateBill(
       rate: rate,
-      reading: widget.reading,
+      reading: widget.tempreading,
       route: widget.route,
-      previousReading: widget.reading.previousReading,
+      previousReading: widget.tempreading.previousReading,
       presentReading: presentReading,
     );
 
@@ -112,28 +138,28 @@ class _TransactionPageState extends State<TransactionPage> {
 
     BillModel _buildBillModel(
       BillSummary summary,
-      TempModel reading,
+      TempReadingModel tempreading,
       RouteModel route,
     ) {
       final now = DateTime.now();
       final dueDate = _computeDueDate(route.dueDay, now);
 
       return BillModel(
-        accountNumber: reading.accountNumber,
-        meterNumber: reading.meterNumber,
-        consumerType: reading.consumerType,
+        accountNumber: tempreading.accountNumber,
+        meterNumber: tempreading.meterNumber,
+        consumerType: tempreading.consumerType,
 
-        powerPreviousReading: reading.previousReading,
+        powerPreviousReading: tempreading.previousReading,
         powerPresentReading: summary.presentReading,
         powerKWH: summary.usedKwh,
-        additionalKWH: reading.additionalKWH,
-        coreLoss: reading.coreloss,
+        additionalKWH: tempreading.additionalKWH,
+        coreLoss: tempreading.coreloss,
 
-        // Fixed charges carried straight from the reading record
-        qcAmount: reading.qcAmount,
-        pcAmount: reading.pcAmount,
-        epAmount: reading.epAmount,
-        bcAmount: reading.bcAmount,
+        // Fixed charges carried straight from the tempreading record
+        qcAmount: tempreading.qcAmount,
+        pcAmount: tempreading.pcAmount,
+        epAmount: tempreading.epAmount,
+        bcAmount: tempreading.bcAmount,
 
         // Category subtotals from the generated bill
         genSysAmt: summary.generationSubtotal,
@@ -149,7 +175,7 @@ class _TransactionPageState extends State<TransactionPage> {
         basicAmount: summary.otherSubtotal,
         netAmount: summary.totalAmount,
 
-        servicePeriodEnd: reading.servicePeriodEnd,
+        servicePeriodEnd: tempreading.servicePeriodEnd,
         billingDate: now,
         dueDate: dueDate,
       );
@@ -158,7 +184,7 @@ class _TransactionPageState extends State<TransactionPage> {
     try {
       final billModel = _buildBillModel(
         billSummary,
-        widget.reading,
+        widget.tempreading,
         widget.route,
       );
 
@@ -185,7 +211,7 @@ class _TransactionPageState extends State<TransactionPage> {
         double.tryParse(presentReadingController.text) ?? 0.0;
 
     setState(() {
-      kwhUsed = presentReading - widget.reading.previousReading;
+      kwhUsed = presentReading - widget.tempreading.previousReading;
 
       if (kwhUsed < 0) {
         kwhUsed = 0.0;
@@ -194,7 +220,7 @@ class _TransactionPageState extends State<TransactionPage> {
   }
 
   DateTime getDueDate() {
-    final servicePeriod = DateTime.parse(widget.reading.servicePeriodEnd);
+    final servicePeriod = DateTime.parse(widget.tempreading.servicePeriodEnd);
 
     return DateTime(
       servicePeriod.year,
@@ -212,7 +238,7 @@ class _TransactionPageState extends State<TransactionPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(widget.reading.consumerName)),
+      appBar: AppBar(title: Text(widget.tempreading.consumerName)),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -223,11 +249,11 @@ class _TransactionPageState extends State<TransactionPage> {
                 padding: const EdgeInsets.all(16),
                 child: Column(
                   children: [
-                    _infoRow("Account No.", widget.reading.accountNumber),
-                    _infoRow("Meter No.", widget.reading.meterNumber),
+                    _infoRow("Account No.", widget.tempreading.accountNumber),
+                    _infoRow("Meter No.", widget.tempreading.meterNumber),
                     _infoRow(
                       "Previous Reading",
-                      widget.reading.previousReading.toStringAsFixed(0),
+                      widget.tempreading.previousReading.toStringAsFixed(0),
                     ),
                   ],
                 ),

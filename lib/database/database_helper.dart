@@ -1,6 +1,7 @@
 import 'package:path/path.dart';
 import 'package:readnbill/models/bill_model.dart';
 import 'package:readnbill/models/rate_model.dart';
+import 'package:readnbill/models/reading_model.dart';
 import 'package:readnbill/models/route_model.dart';
 import 'package:readnbill/models/tempreading_model.dart';
 import 'package:sqflite/sqflite.dart';
@@ -13,6 +14,7 @@ class DatabaseHelper {
   static const String tableTempReadings = 'temp_readings';
   static const String tableRates = 'rates';
   static const String tableBills = 'bills';
+  static const String tableReadings = 'readings';
 
   DatabaseHelper._init();
 
@@ -255,6 +257,23 @@ class DatabaseHelper {
         is_uploaded INTEGER NOT NULL DEFAULT 0
       )
     ''');
+
+    // Readings table
+    await db.execute('''
+      CREATE TABLE ${tableReadings}(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        ServicePeriodEnd TEXT,
+        AccountNumber TEXT UNIQUE,
+        ReadingDate TEXT,
+        ReadBy TEXT,
+        PowerReadings REAL,
+        DemandReadings REAL,
+        FieldFindings TEXT,
+        MissCodes TEXT,
+        Remarks TEXT,
+        is_uploaded INTEGER NOT NULL DEFAULT 0
+      )
+    ''');
   }
 
   // ---------------------------------------------------------------------
@@ -394,10 +413,10 @@ class DatabaseHelper {
   }
 
   // ---------------------------------------------------------------------
-  // CRUD helpers — all typed against TempModel
+  // CRUD helpers — all typed against TempReadingModel
   // ---------------------------------------------------------------------
 
-  Future<List<TempModel>> getReadingsByRoute(String routeCode) async {
+  Future<List<TempReadingModel>> getReadingsByRoute(String routeCode) async {
     final db = await database;
 
     final result = await db.query(
@@ -407,10 +426,12 @@ class DatabaseHelper {
       orderBy: 'SequenceNumber ASC',
     );
 
-    return result.map<TempModel>((row) => TempModel.fromMap(row)).toList();
+    return result
+        .map<TempReadingModel>((row) => TempReadingModel.fromMap(row))
+        .toList();
   }
 
-  Future<void> saveTempReadings(List<TempModel> readings) async {
+  Future<void> saveTempReadings(List<TempReadingModel> readings) async {
     final db = await database;
 
     final batch = db.batch();
@@ -434,14 +455,14 @@ class DatabaseHelper {
     await batch.commit(noResult: true);
   }
 
-  Future<List<TempModel>> getPendingTempReadings() async {
+  Future<List<TempReadingModel>> getPendingTempReadings() async {
     final db = await database;
     final rows = await db.query(
       tableTempReadings,
       where: 'is_uploaded = ?',
       whereArgs: [0],
     );
-    return rows.map((row) => TempModel.fromMap(row)).toList();
+    return rows.map((row) => TempReadingModel.fromMap(row)).toList();
   }
 
   Future<void> markTempReadingsAsUploaded(List<int> ids) async {
@@ -461,7 +482,7 @@ class DatabaseHelper {
     await batch.commit(noResult: true);
   }
 
-  Future<int> updateReading({
+  Future<int> updateTempReading({
     required String accountNumber,
     required Map<String, dynamic> values,
   }) async {
@@ -552,4 +573,94 @@ class DatabaseHelper {
   }
 
   // ---------------------------------------------------------------------
+  // CRUD helpers — all typed against ReadingModel
+  // ---------------------------------------------------------------------
+
+  Future<int> insertReading(ReadingModel reading) async {
+    final db = await database;
+    final map = reading.toMap();
+
+    map.remove('id'); // never pass an explicit id on insert
+
+    // New bill needs to be uploaded
+    map['is_uploaded'] = 0;
+
+    return await db.insert(
+      tableReadings,
+      map,
+      conflictAlgorithm: ConflictAlgorithm.replace,
+    );
+  }
+
+  Future<void> saveOrUpdateReading(ReadingModel reading) async {
+    final db = await database;
+
+    final existing = await db.query(
+      tableReadings,
+      columns: ['id'],
+      where: 'AccountNumber = ?',
+      whereArgs: [reading.accountNumber],
+      limit: 1,
+    );
+
+    if (existing.isEmpty) {
+      // New reading
+      await insertReading(reading);
+    } else {
+      // Existing reading
+      await updateReading(
+        accountNumber: reading.accountNumber,
+        values: {
+          'ServicePeriodEnd': reading.servicePeriodEnd,
+          'ReadingDate': reading.readingDate?.toIso8601String(),
+          'ReadBy': reading.readBy,
+          'PowerReadings': reading.powerReading,
+
+          // It was modified locally
+          'is_uploaded': 0,
+        },
+      );
+    }
+  }
+
+  Future<List<TempReadingModel>> getPendingReadings() async {
+    final db = await database;
+    final rows = await db.query(
+      tableReadings,
+      where: 'is_uploaded = ?',
+      whereArgs: [0],
+    );
+    return rows.map((row) => TempReadingModel.fromMap(row)).toList();
+  }
+
+  Future<void> markReadingsAsUploaded(List<int> ids) async {
+    final db = await database;
+
+    final batch = db.batch();
+
+    for (final id in ids) {
+      batch.update(
+        tableReadings,
+        {'is_uploaded': 1},
+        where: 'id = ?',
+        whereArgs: [id],
+      );
+    }
+
+    await batch.commit(noResult: true);
+  }
+
+  Future<int> updateReading({
+    required String accountNumber,
+    required Map<String, dynamic> values,
+  }) async {
+    final db = await database;
+
+    return db.update(
+      tableReadings,
+      values,
+      where: 'AccountNumber = ?',
+      whereArgs: [accountNumber],
+    );
+  }
 }

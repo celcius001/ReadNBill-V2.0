@@ -23,7 +23,7 @@ class ApiService {
     throw Exception("Failed to download route.");
   }
 
-  Future<List<TempModel>> downloadTemp({
+  Future<List<TempReadingModel>> downloadTemp({
     required String routeCode,
     required int seqFrom,
     required int seqTo,
@@ -36,7 +36,7 @@ class ApiService {
 
     if (response.statusCode == 200) {
       final List<dynamic> jsonList = jsonDecode(response.body);
-      return jsonList.map((json) => TempModel.fromJson(json)).toList();
+      return jsonList.map((json) => TempReadingModel.fromJson(json)).toList();
     }
 
     throw Exception("Failed to download route.");
@@ -69,7 +69,7 @@ class ApiService {
     }
   }
 
-  Future<void> uploadTempReadings(List<TempModel> tempReadings) async {
+  Future<void> uploadTempReadings(List<TempReadingModel> tempReadings) async {
     final uri = Uri.parse("$baseUrl/temp/upload");
 
     final response = await http.post(

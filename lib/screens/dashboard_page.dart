@@ -14,8 +14,8 @@ class DashboardPage extends StatefulWidget {
 
 class _DashboardPageState extends State<DashboardPage> {
   final TextEditingController searchController = TextEditingController();
-  List<TempModel> readings = [];
-  List<TempModel> filteredReadings = [];
+  List<TempReadingModel> readings = [];
+  List<TempReadingModel> filteredReadings = [];
 
   @override
   void initState() {
@@ -128,7 +128,7 @@ class _DashboardPageState extends State<DashboardPage> {
                         MaterialPageRoute(
                           builder:
                               (context) => TransactionPage(
-                                reading: reading,
+                                tempreading: reading,
                                 route: widget.route!,
                               ),
                         ),

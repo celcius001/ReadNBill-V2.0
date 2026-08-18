@@ -1,4 +1,4 @@
-class TempModel {
+class TempReadingModel {
   // ---- SQLite-only fields (not part of the API payload) ----
   final int? id;
   final bool isUploaded;
@@ -31,7 +31,7 @@ class TempModel {
   final double bcAmount;
   final double arrAmount;
 
-  TempModel({
+  TempReadingModel({
     this.id,
     this.isUploaded = false,
     required this.servicePeriodEnd,
@@ -64,8 +64,8 @@ class TempModel {
   });
 
   // Used by API
-  factory TempModel.fromJson(Map<String, dynamic> json) {
-    return TempModel(
+  factory TempReadingModel.fromJson(Map<String, dynamic> json) {
+    return TempReadingModel(
       servicePeriodEnd: json['ServicePeriodEnd']?.toString() ?? '',
       accountNumber: json['AccountNumber']?.toString() ?? '',
       route: json['Route']?.toString() ?? '',
@@ -109,8 +109,8 @@ class TempModel {
   }
 
   // Used by SQLite
-  factory TempModel.fromMap(Map<String, dynamic> map) {
-    return TempModel(
+  factory TempReadingModel.fromMap(Map<String, dynamic> map) {
+    return TempReadingModel(
       id: map['id'] as int?,
       isUploaded: (map['is_uploaded'] as int?) == 1,
       servicePeriodEnd: map['ServicePeriodEnd']?.toString() ?? '',
