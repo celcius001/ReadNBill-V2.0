@@ -3,6 +3,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import 'package:readnbill/models/bill_model.dart';
 import 'package:readnbill/models/rate_model.dart';
+import 'package:readnbill/models/reading_model.dart';
 import 'package:readnbill/models/route_model.dart';
 import 'package:readnbill/models/tempreading_model.dart';
 
@@ -82,7 +83,23 @@ class ApiService {
     );
 
     if (response.statusCode != 200 && response.statusCode != 201) {
-      throw Exception("Failed to upload bills: ${response.statusCode}");
+      throw Exception("Failed to upload tempReadings: ${response.statusCode}");
+    }
+  }
+
+  Future<void> uploadReadings(List<ReadingModel> readings) async {
+    final uri = Uri.parse("$baseUrl/reading/upload");
+
+    final response = await http.post(
+      uri,
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'readings': readings.map((reading) => reading.toJson()).toList(),
+      }),
+    );
+
+    if (response.statusCode != 200 && response.statusCode != 201) {
+      throw Exception("Failed to upload readings: ${response.statusCode}");
     }
   }
 }

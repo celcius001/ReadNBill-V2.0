@@ -24,19 +24,25 @@ class _ReportPageState extends State<ReportPage> {
       // Get pending data
       final bills = await DatabaseHelper.instance.getPendingBills();
 
-      final readings = await DatabaseHelper.instance.getPendingTempReadings();
+      final tempReadings =
+          await DatabaseHelper.instance.getPendingTempReadings();
 
-      if (bills.isEmpty && readings.isEmpty) {
+      final readings = await DatabaseHelper.instance.getPendingReadings();
+
+      if (bills.isEmpty && tempReadings.isEmpty && readings.isEmpty) {
         if (!mounted) return;
 
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("No bills or readings to upload.")),
+          const SnackBar(
+            content: Text("No bills or tempReadings or readings to upload."),
+          ),
         );
 
         return;
       }
 
       int uploadedBills = 0;
+      int uploadedTempReadings = 0;
       int uploadedReadings = 0;
 
       // -------------------------
@@ -55,13 +61,30 @@ class _ReportPageState extends State<ReportPage> {
       // -------------------------
       // Upload Temp Readings
       // -------------------------
+      if (tempReadings.isNotEmpty) {
+        await api.uploadTempReadings(tempReadings);
+
+        final readingIds =
+            tempReadings
+                .map((tempReading) => tempReading.id)
+                .whereType<int>()
+                .toList();
+
+        await DatabaseHelper.instance.markTempReadingsAsUploaded(readingIds);
+
+        uploadedTempReadings = tempReadings.length;
+      }
+
+      // -------------------------
+      // Upload Readings
+      // -------------------------
       if (readings.isNotEmpty) {
-        await api.uploadTempReadings(readings);
+        await api.uploadReadings(readings);
 
         final readingIds =
             readings.map((reading) => reading.id).whereType<int>().toList();
 
-        await DatabaseHelper.instance.markTempReadingsAsUploaded(readingIds);
+        await DatabaseHelper.instance.markReadingsAsUploaded(readingIds);
 
         uploadedReadings = readings.length;
       }
@@ -73,7 +96,8 @@ class _ReportPageState extends State<ReportPage> {
           content: Text(
             "Upload successful: "
             "$uploadedBills bill(s), "
-            "$uploadedReadings reading(s).",
+            "$uploadedTempReadings tempReading(s), "
+            "$uploadedReadings reading(s). ",
           ),
         ),
       );

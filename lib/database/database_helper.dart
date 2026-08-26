@@ -623,14 +623,14 @@ class DatabaseHelper {
     }
   }
 
-  Future<List<TempReadingModel>> getPendingReadings() async {
+  Future<List<ReadingModel>> getPendingReadings() async {
     final db = await database;
     final rows = await db.query(
       tableReadings,
       where: 'is_uploaded = ?',
       whereArgs: [0],
     );
-    return rows.map((row) => TempReadingModel.fromMap(row)).toList();
+    return rows.map((row) => ReadingModel.fromMap(row)).toList();
   }
 
   Future<void> markReadingsAsUploaded(List<int> ids) async {
