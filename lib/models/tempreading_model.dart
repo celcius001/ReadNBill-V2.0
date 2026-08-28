@@ -10,6 +10,8 @@ class TempReadingModel {
   final String consumerName;
   final String consumerAddress;
   final String meterNumber;
+  final double previousReading2;
+  final double previousReading1;
   final double previousReading;
   final double powerReading;
   final DateTime? readingDate;
@@ -41,6 +43,8 @@ class TempReadingModel {
     required this.consumerName,
     required this.consumerAddress,
     required this.meterNumber,
+    required this.previousReading2,
+    required this.previousReading1,
     required this.previousReading,
     required this.powerReading,
     required this.readingDate,
@@ -75,6 +79,8 @@ class TempReadingModel {
       consumerAddress: json['ConsumerAddress']?.toString() ?? '',
       meterNumber: json['MeterNumber']?.toString() ?? '',
 
+      previousReading2: (json['PreviousReading2'] as num?)?.toDouble() ?? 0.0,
+      previousReading1: (json['PreviousReading1'] as num?)?.toDouble() ?? 0.0,
       previousReading: (json['PreviousReading'] as num?)?.toDouble() ?? 0.0,
       powerReading: (json['PowerReadings'] as num?)?.toDouble() ?? 0.0,
 
@@ -122,6 +128,8 @@ class TempReadingModel {
       consumerAddress: map['ConsumerAddress']?.toString() ?? '',
       meterNumber: map['MeterNumber']?.toString() ?? '',
 
+      previousReading2: (map['PreviousReading2'] as num?)?.toDouble() ?? 0.0,
+      previousReading1: (map['PreviousReading1'] as num?)?.toDouble() ?? 0.0,
       previousReading: (map['PreviousReading'] as num?)?.toDouble() ?? 0.0,
       powerReading: (map['PowerReadings'] as num?)?.toDouble() ?? 0.0,
 
@@ -168,6 +176,8 @@ class TempReadingModel {
       'ConsumerName': consumerName,
       'ConsumerAddress': consumerAddress,
       'MeterNumber': meterNumber,
+      'PreviousReading2': previousReading2,
+      'PreviousReading1': previousReading1,
       'PreviousReading': previousReading,
       'PowerReadings': powerReading,
       'ReadingDate': readingDate?.toIso8601String(),

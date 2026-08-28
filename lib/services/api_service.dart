@@ -3,9 +3,12 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:http/http.dart' as http;
 import 'package:readnbill/models/bill_model.dart';
 import 'package:readnbill/models/rate_model.dart';
+import 'package:readnbill/models/rate_response.dart';
 import 'package:readnbill/models/reading_model.dart';
 import 'package:readnbill/models/route_model.dart';
+import 'package:readnbill/models/route_response.dart';
 import 'package:readnbill/models/tempreading_model.dart';
+import 'package:readnbill/models/tempreading_response.dart';
 
 class ApiService {
   final baseUrl = dotenv.env["API_BASE_URL"]!;
@@ -18,7 +21,13 @@ class ApiService {
     if (response.statusCode == 200) {
       final Map<String, dynamic> json = jsonDecode(response.body);
 
-      return RouteModel.fromJson(json);
+      final routeResponse = RouteResponse.fromJson(json);
+
+      if (!routeResponse.success || routeResponse.data.isEmpty) {
+        throw Exception("Route not found.");
+      }
+
+      return routeResponse.data.first;
     }
 
     throw Exception("Failed to download route.");
@@ -36,8 +45,15 @@ class ApiService {
     final response = await http.get(uri);
 
     if (response.statusCode == 200) {
-      final List<dynamic> jsonList = jsonDecode(response.body);
-      return jsonList.map((json) => TempReadingModel.fromJson(json)).toList();
+      final Map<String, dynamic> json = jsonDecode(response.body);
+
+      final tempResponse = TempReadingResponse.fromJson(json);
+
+      if (!tempResponse.success) {
+        throw Exception("Failed to download temp readings.");
+      }
+
+      return tempResponse.data;
     }
 
     throw Exception("Failed to download route.");
@@ -49,8 +65,15 @@ class ApiService {
     final response = await http.get(uri);
 
     if (response.statusCode == 200) {
-      final List<dynamic> jsonList = jsonDecode(response.body);
-      return jsonList.map((json) => RateModel.fromJson(json)).toList();
+      final Map<String, dynamic> json = jsonDecode(response.body);
+
+      final rateResponse = RateResponse.fromJson(json);
+
+      if (!rateResponse.success) {
+        throw Exception("Failed to download rates.");
+      }
+
+      return rateResponse.data;
     }
 
     throw Exception("Failed to download route.");

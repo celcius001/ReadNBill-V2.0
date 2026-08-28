@@ -72,6 +72,9 @@ class _TransactionPageState extends State<TransactionPage> {
         values: {
           'PowerReadings': presentReading,
           'ReadingDate': now.toIso8601String(),
+
+          // It was modified locally
+          'is_uploaded': 0,
         },
       );
 
