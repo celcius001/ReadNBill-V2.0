@@ -289,4 +289,46 @@ class RateModel {
       'FranchiseTax': franchiseTax,
     };
   }
+
+  double get generationRate {
+    return genSysCharge +
+        (ogaCharge ?? 0.0) +
+        (ogaCurrCharge ?? 0.0) +
+        (oga3Charge ?? 0.0) +
+        sysLossCharge +
+        (oslaCharge ?? 0.0) +
+        (oslaCurrCharge ?? 0.0) +
+        (osla3Charge ?? 0.0) +
+        (fbhcCharge ?? 0.0) +
+        (otcaDemCharge ?? 0.0) +
+        (otcaDemCurrCharge ?? 0.0) +
+        (otcaDem3Charge ?? 0.0) +
+        transSysCharge +
+        otcaSysCharge +
+        (otcaSysCurrCharge ?? 0.0) +
+        (otcaSys3Charge ?? 0.0) +
+        distribSysCharge +
+        (supplySysCharge ?? 0.0) +
+        (metSysCharge ?? 0.0) +
+        (par ?? 0.0) +
+        loanCondonation +
+        lifeLineRateSubsidy +
+        (olraCharge ?? 0.0) +
+        (olraCurrCharge ?? 0.0) +
+        (olra3Charge ?? 0.0) +
+        seniorCitizenSubsidy +
+        vatGen +
+        vatTrans +
+        vatSL +
+        vatDist +
+        vatOthers +
+        ucMissElecCharge +
+        meredciCharge +
+        ucEnvCharge +
+        (strandedCost ?? 0.0) +
+        npcsdCharge +
+        fitAllCharge +
+        (realPropertyTax ?? 0.0) +
+        (franchiseTax ?? 0.0);
+  }
 }

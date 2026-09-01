@@ -1,5 +1,6 @@
 import 'package:blue_thermal_printer/blue_thermal_printer.dart';
 import 'package:readnbill/models/bill_summary.dart';
+import 'package:readnbill/models/rate_model.dart';
 
 class PrinterService {
   PrinterService._();
@@ -40,7 +41,7 @@ class PrinterService {
     return await _printer.isConnected ?? false;
   }
 
-  Future<void> printBill(BillSummary summary) async {
+  Future<void> printBill(BillSummary summary, RateModel rate) async {
     // ==========================================
     // 58mm Printer Formatting
     // ==========================================
@@ -330,6 +331,11 @@ class PrinterService {
     await printer.printCustom("--------------------------------", 1, 0);
     await printer.printCustom(
       alignLeftRight("Due Date", formatDate(dueDate)),
+      1,
+      0,
+    );
+    await printer.printCustom(
+      alignLeftRight("Power Rate", "${rate.generationRate.toStringAsFixed(4)}"),
       1,
       0,
     );

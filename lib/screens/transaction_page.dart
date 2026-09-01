@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:readnbill/database/database_helper.dart';
 import 'package:readnbill/models/bill_model.dart';
 import 'package:readnbill/models/bill_summary.dart';
+import 'package:readnbill/models/rate_model.dart';
 import 'package:readnbill/models/reading_model.dart';
 import 'package:readnbill/models/route_model.dart';
 import 'package:readnbill/models/tempreading_model.dart';
@@ -24,6 +25,8 @@ class TransactionPage extends StatefulWidget {
 class _TransactionPageState extends State<TransactionPage> {
   final TextEditingController presentReadingController =
       TextEditingController();
+
+  RateModel? rate;
 
   double kwhUsed = 0.0;
 
@@ -195,7 +198,7 @@ class _TransactionPageState extends State<TransactionPage> {
       await DatabaseHelper.instance.insertBill(billModel);
 
       // ---- Print the bill ----
-      await PrinterService.instance.printBill(billSummary);
+      await PrinterService.instance.printBill(billSummary, rate);
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
