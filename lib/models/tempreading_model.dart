@@ -2,6 +2,7 @@ class TempReadingModel {
   // ---- SQLite-only fields (not part of the API payload) ----
   final int? id;
   final bool isUploaded;
+  final bool isRead;
 
   final String servicePeriodEnd;
   final String accountNumber;
@@ -36,6 +37,7 @@ class TempReadingModel {
   TempReadingModel({
     this.id,
     this.isUploaded = false,
+    this.isRead = false,
     required this.servicePeriodEnd,
     required this.accountNumber,
     required this.route,
@@ -119,6 +121,7 @@ class TempReadingModel {
     return TempReadingModel(
       id: map['id'] as int?,
       isUploaded: (map['is_uploaded'] as int?) == 1,
+      isRead: (map['is_read'] as int?) == 1,
       servicePeriodEnd: map['ServicePeriodEnd']?.toString() ?? '',
       accountNumber: map['AccountNumber']?.toString() ?? '',
       route: map['Route']?.toString() ?? '',
@@ -169,6 +172,7 @@ class TempReadingModel {
       // auto-increments. It's included here so updates/copies can carry it.
       if (id != null) 'id': id,
       'is_uploaded': isUploaded ? 1 : 0,
+      'is_read': isRead ? 1 : 0,
       'ServicePeriodEnd': servicePeriodEnd,
       'AccountNumber': accountNumber,
       'Route': route,
@@ -227,6 +231,7 @@ class TempReadingModel {
 
     // Don't upload SQLite-only fields
     map.remove('id');
+    map.remove('is_read');
     map.remove('is_uploaded');
 
     // SQL DATE

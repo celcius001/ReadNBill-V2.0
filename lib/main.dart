@@ -7,5 +7,14 @@ Future<void> main() async {
 
   await dotenv.load(fileName: ".env");
 
-  runApp(const MaterialApp(home: HomePage()));
+  runApp(
+    MaterialApp(
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
+        useMaterial3: true,
+      ),
+      home: const HomePage(),
+    ),
+  );
 }

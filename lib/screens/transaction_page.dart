@@ -77,6 +77,7 @@ class _TransactionPageState extends State<TransactionPage> {
           'ReadingDate': now.toIso8601String(),
 
           // It was modified locally
+          'is_read': 1,
           'is_uploaded': 0,
         },
       );

@@ -87,6 +87,7 @@ class DatabaseHelper {
         EPAmount REAL,
         ArrAmount REAL,
         BCAmount REAL,
+        is_read INTEGER NOT NULL DEFAULT 0,
         is_uploaded INTEGER NOT NULL DEFAULT 0
       )
     ''');
@@ -423,7 +424,14 @@ class DatabaseHelper {
       tableTempReadings,
       where: 'Route = ?',
       whereArgs: [routeCode],
-      orderBy: 'SequenceNumber ASC',
+      orderBy: '''
+        CASE
+          WHEN AccountStatus = 'ACTIVE' THEN 0
+          WHEN AccountStatus = 'DISCO' THEN 1
+          ELSE 2
+        END,
+        SequenceNumber ASC
+      ''',
     );
 
     return result
@@ -459,8 +467,8 @@ class DatabaseHelper {
     final db = await database;
     final rows = await db.query(
       tableTempReadings,
-      where: 'is_uploaded = ?',
-      whereArgs: [0],
+      where: 'is_uploaded = ? AND is_read = ?',
+      whereArgs: [0, 1],
     );
     return rows.map((row) => TempReadingModel.fromMap(row)).toList();
   }

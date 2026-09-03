@@ -94,7 +94,18 @@ class _DashboardPageState extends State<DashboardPage> {
                   ),
                   child: ListTile(
                     leading: CircleAvatar(
-                      child: Text(reading.sequenceNumber.toString()),
+                      backgroundColor:
+                          reading.isRead
+                              ? Colors.green
+                              : reading.accountStatus.toUpperCase() == 'ACTIVE'
+                              ? Colors.blue
+                              : reading.accountStatus.toUpperCase() == 'DISCO'
+                              ? Colors.red
+                              : Colors.grey,
+                      child: Text(
+                        reading.sequenceNumber.toString(),
+                        style: const TextStyle(color: Colors.white),
+                      ),
                     ),
                     title: Text(
                       reading.consumerName,
